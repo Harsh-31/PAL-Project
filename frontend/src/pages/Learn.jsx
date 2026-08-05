@@ -27,7 +27,8 @@ export default function Learn() {
   const playerRef = useRef(null);
   const timerRef = useRef(null);
 
-  const courseId = user?.current_course_id;
+  const trackIds = user?.track_ids || [];
+  const hasTracks = trackIds.length > 0;
 
   const [masteryMap, setMasteryMap] = useState({});  // concept_id -> {score, attempts}
 
@@ -54,8 +55,8 @@ export default function Learn() {
   };
 
   const refreshPlaylist = async (preserveActive = true) => {
-    if (!courseId) return;
-    const data = await api(`/api/playlist/${courseId}`);
+    if (!hasTracks) return;
+    const data = await api('/api/playlist');
     const mMap = Object.fromEntries((data.mastery || []).map(m => [m.id, m]));
     setMasteryMap(mMap);
     // Merge in supplementary lectures from other courses (PRD: cross-course curation)
@@ -71,7 +72,7 @@ export default function Learn() {
     }
   };
 
-  useEffect(() => { refreshPlaylist(false); }, [courseId]);
+  useEffect(() => { refreshPlaylist(false); }, [hasTracks]);
 
   // Poll player time — used both to render "current chunk" and to trigger quizzes
   useEffect(() => {
@@ -128,7 +129,7 @@ export default function Learn() {
     // Re-read fresh supplementary count via a second call — cheap and simple
     let addedSupp = 0;
     try {
-      const data = await api(`/api/playlist/${courseId}`);
+      const data = await api('/api/playlist');
       const nowSupp = (data.supplementary || []).length;
       addedSupp = Math.max(0, nowSupp - preSupp);
     } catch {}

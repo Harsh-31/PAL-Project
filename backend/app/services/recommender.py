@@ -167,70 +167,86 @@ def _group_chunks_into_lectures(chunks: list[dict]) -> list[dict]:
     return list(by_lecture.values())
 
 
-async def _fetch_source_domain(course_id: str) -> str | None:
+async def _fetch_struggling_target_concepts(user_id: str, target_concept_ids: list[str],
+                                            threshold: float) -> list[dict]:
+    """Concepts in the learner's TARGET set (their goal) that they're struggling with."""
+    if not target_concept_ids:
+        return []
     driver = get_driver()
     async with driver.session() as s:
-        r = await s.run("MATCH (c:Course {id:$id}) RETURN c.domain AS d", id=course_id)
-        rec = await r.single()
-        return rec["d"] if rec else None
+        r = await s.run(
+            """MATCH (c:Course)-[:CONTAINS]->(k:Concept)
+               WHERE k.id IN $cids
+               MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k)
+               WHERE m.score < $thr
+               RETURN DISTINCT
+                      k.id AS concept_id, k.name AS concept_name,
+                      k.difficulty AS difficulty, k.embedding AS embedding,
+                      c.domain AS course_domain, m.score AS score""",
+            cids=target_concept_ids, uid=user_id, thr=threshold,
+        )
+        return [dict(rec) async for rec in r]
 
 
-async def recommend_supplementary(user_id: str, course_id: str,
+async def recommend_supplementary(user_id: str, target_concept_ids: list[str],
                                   struggle_threshold: float = 0.55,
-                                  k_per_struggle: int = 1,
-                                  min_similarity: float = 0.60,
-                                  cross_domain_threshold: float = 0.78) -> list[dict]:
-    """Main entry point — returns a ranked list of supplementary lectures.
+                                  k_per_struggle: int = 2,
+                                  min_similarity: float = 0.55,
+                                  cross_domain_threshold: float = 0.72,
+                                  playlist_lecture_ids: list[str] | None = None) -> list[dict]:
+    """Cross-course supplementary recommendations.
 
-    Same-domain candidates (e.g. Computer Science → Computer Science) get a
-    ranking boost and clear a lower similarity bar. Cross-domain candidates
-    (e.g. Computer Science → Machine Learning) only surface when the semantic
-    similarity is very strong — this keeps pedagogically irrelevant matches out.
+    Candidates are any embedded concept in the KG EXCEPT the struggling concept
+    itself. If the caller passes `playlist_lecture_ids`, we drop lectures the
+    learner is already seeing — so a recommendation is only surfaced when it's
+    genuinely new material.
 
-    Each returned lecture has the shape the frontend already renders, plus:
-      supplementary=True, source_course_id, source_course_title, same_domain,
-      for_concept_name, similarity, recommendation_source
+    Same-domain candidates get a score boost and clear a lower similarity bar.
+    Cross-domain candidates must clear a higher bar so unrelated topics don't
+    surface as "bridges".
     """
-    struggling = await _fetch_struggling_concepts(user_id, course_id, struggle_threshold)
+    if not target_concept_ids:
+        return []
+    struggling = await _fetch_struggling_target_concepts(
+        user_id, target_concept_ids, struggle_threshold
+    )
     if not struggling:
         return []
     all_concepts = await _fetch_all_concepts_with_embeddings()
     if not all_concepts:
-        return []  # caller falls back to topic-match
+        return []
 
-    source_domain = await _fetch_source_domain(course_id)
+    struggling_ids = {s["concept_id"] for s in struggling}
+    playlist_ids = set(playlist_lecture_ids or [])
 
-    # Filter candidates: from OTHER courses only, with embeddings
-    candidates = [c for c in all_concepts if c["course_id"] != course_id and c["embedding"]]
-
-    picked: dict[str, dict] = {}  # lecture_id -> lecture, so we dedupe cross-struggle
+    picked: dict[str, dict] = {}
     for st in struggling:
         if not st.get("embedding"):
             continue
-        # Score every candidate for this struggling concept
+        source_domain = st.get("course_domain")
+        # Candidates: any embedded concept that isn't itself struggling
+        candidates = [c for c in all_concepts
+                      if c["concept_id"] not in struggling_ids and c["embedding"]]
         scored = []
         for cand in candidates:
             sim = cos_sim(st["embedding"], cand["embedding"])
             prox = difficulty_proximity(st["difficulty"], cand["difficulty"])
             same_domain = (cand.get("course_domain") == source_domain) if source_domain else False
-            # Base score: similarity dominates, difficulty proximity is a soft rerank
             score = sim * (0.7 + 0.3 * prox)
-            # Domain-aware boost: same-domain gets +20% score. This nudges the ranker
-            # to prefer Programming→Programming over Programming→ML at equal similarity.
             if same_domain:
                 score *= 1.2
             scored.append((score, sim, cand, same_domain))
         scored.sort(key=lambda x: x[0], reverse=True)
-        # Take top-K candidate concepts, materialise their lectures
         for score, sim, cand, same_domain in scored[:k_per_struggle]:
-            # Same-domain uses the base threshold. Cross-domain must clear a much
-            # higher bar to filter out spurious "everything is vaguely similar" matches
-            # when the candidate pool is small.
             needed = min_similarity if same_domain else cross_domain_threshold
             if sim < needed:
                 continue
             lectures = _group_chunks_into_lectures(cand["chunks"])
             for lec in lectures:
+                # Skip lectures already in the composed playlist — don't tell the
+                # learner to watch what they'd naturally reach anyway.
+                if lec["lecture_id"] in playlist_ids:
+                    continue
                 if lec["lecture_id"] in picked:
                     continue
                 for ch in lec["chunks"]:

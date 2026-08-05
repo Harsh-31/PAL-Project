@@ -8,7 +8,9 @@
     "domain": "Computer Science",
     "concepts": [
       {"id": "cs-variables",  "name": "Variables & Types",     "difficulty": 1, "topic": "programming-basics"},
-      {"id": "cs-branching",  "name": "Branching & Iteration", "difficulty": 2, "topic": "programming-control-flow", "prereqs": ["cs-variables"]}
+      {"id": "cs-branching",  "name": "Branching & Iteration", "difficulty": 2, "topic": "programming-control-flow", "prereqs": ["cs-variables"]},
+      {"id": "cs-strings",    "name": "String Manipulation",   "difficulty": 2, "topic": "programming-data-types",   "prereqs": ["cs-variables"]},
+      {"id": "cs-functions",  "name": "Functions & Abstraction","difficulty": 3, "topic": "programming-abstraction", "prereqs": ["cs-branching"]}
     ],
     "lectures": [
       {
@@ -31,6 +33,28 @@
           {"id": "mit6001-l2-c3", "start": 90,  "end": 180,  "summary": "if / elif / else — branching rules."},
           {"id": "mit6001-l2-c4", "start": 180, "end": 300,  "summary": "While loops — condition-driven repetition."},
           {"id": "mit6001-l2-c5", "start": 300, "end": 2700, "summary": "For loops and range."}
+        ]
+      },
+      {
+        "id": "mit6001-l3", "title": "String Manipulation, Guess and Check, Bisection", "youtube_id": "SE4P7IVCunE", "duration_sec": 2880,
+        "concept_ids": ["cs-strings"],
+        "chunks": [
+          {"id": "mit6001-l3-c1", "start": 0,   "end": 30,   "summary": "Recap of branching + intro to strings."},
+          {"id": "mit6001-l3-c2", "start": 30,  "end": 90,   "summary": "String indexing, slicing, and immutability."},
+          {"id": "mit6001-l3-c3", "start": 90,  "end": 180,  "summary": "Guess-and-check algorithms — exhaustive search."},
+          {"id": "mit6001-l3-c4", "start": 180, "end": 300,  "summary": "Approximation methods — narrowing a range."},
+          {"id": "mit6001-l3-c5", "start": 300, "end": 2880, "summary": "Bisection search — halving to find the root."}
+        ]
+      },
+      {
+        "id": "mit6001-l4", "title": "Decomposition, Abstraction, and Functions", "youtube_id": "MjbuarJ7SE0", "duration_sec": 3060,
+        "concept_ids": ["cs-functions"],
+        "chunks": [
+          {"id": "mit6001-l4-c1", "start": 0,   "end": 30,   "summary": "Motivation — why we need functions."},
+          {"id": "mit6001-l4-c2", "start": 30,  "end": 90,   "summary": "Decomposition — breaking programs into pieces."},
+          {"id": "mit6001-l4-c3", "start": 90,  "end": 180,  "summary": "Abstraction — hiding implementation details."},
+          {"id": "mit6001-l4-c4", "start": 180, "end": 300,  "summary": "Function definition, parameters, return values."},
+          {"id": "mit6001-l4-c5", "start": 300, "end": 3060, "summary": "Scope — how variables are looked up."}
         ]
       }
     ]

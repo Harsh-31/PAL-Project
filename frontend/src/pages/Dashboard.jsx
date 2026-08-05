@@ -20,7 +20,9 @@ export default function Dashboard() {
       <div style={{ padding: '20px 20px 0' }}>
         <h1 style={{ margin: 0 }}>Hi {user?.name?.split(' ')[0] || 'there'}!</h1>
         <p className="muted">
-          {data.enrolled_courses[0] ? `Currently learning: ${data.enrolled_courses[0]}` : 'Not enrolled yet'}
+          {user?.track_ids?.length
+            ? `Learning: ${user.track_ids.map(t => t.replace(/-/g, ' ')).join(', ')}`
+            : 'Not enrolled yet'}
           {' · '}
           <Link to="/learn">Jump back into learning →</Link>
         </p>

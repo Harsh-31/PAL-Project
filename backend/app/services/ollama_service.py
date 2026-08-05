@@ -56,15 +56,19 @@ class OllamaService:
         concept_name: str,
         chunk_summary: str,
         difficulty: int,
-        hobbies: list[str],
+        hobbies: list[str],  # kept in signature for compat, not used in generation
     ) -> dict:
-        """Adaptive MCQ generation — hobby-flavoured, difficulty-scaled."""
-        hobby_hint = (
-            f"Weave a light analogy from one of these hobbies where natural: {', '.join(hobbies)}."
-            if hobbies else "Keep the question direct — no forced analogies."
-        )
+        """Adaptive MCQ generation — difficulty-scaled, concept-focused.
+
+        Note: hobbies are intentionally NOT used here. Hobby analogies belong to
+        the post-lecture summary (summarize_with_hobby) and the sidebar chat.
+        A quiz question should test the concept directly, in domain-appropriate
+        language — mixing in the learner's cricket or Marvel references makes
+        the question feel gimmicky and can obscure what's actually being asked.
+        """
         system = (
-            "You are PAL, an adaptive tutor. Generate exactly ONE multiple-choice question. "
+            "You are PAL, an adaptive tutor. Generate exactly ONE multiple-choice question "
+            "that tests understanding of the specified concept. "
             "Output STRICT JSON only, no prose, no markdown, no code fences. "
             "Schema: {\"question\": str, \"options\": [str,str,str,str], "
             "\"correct_index\": int (0-3), \"explanation\": str}."
@@ -73,11 +77,13 @@ class OllamaService:
             f"Concept: {concept_name}\n"
             f"Lecture chunk summary: {chunk_summary}\n"
             f"Difficulty (1-5): {difficulty}\n"
-            f"{hobby_hint}\n"
             "Rules:\n"
+            "- The question and all options must be phrased in direct, domain-appropriate language.\n"
+            "- Do NOT reference sports, movies, hobbies, or everyday analogies in the question or options.\n"
             "- Exactly 4 options.\n"
-            "- Exactly one clearly correct answer.\n"
-            "- Explanation should be one crisp sentence."
+            "- Exactly one clearly correct answer; the other three should be plausible distractors.\n"
+            "- Explanation should be one crisp sentence justifying the correct answer.\n"
+            "- Higher difficulty = trickier distractors and more precise wording."
         )
         raw = await self._chat(system, user, json_mode=True)
         data = self._safe_json(raw, {

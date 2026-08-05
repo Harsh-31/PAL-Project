@@ -1,0 +1,23 @@
+[
+  {
+    "id": "python-programming",
+    "title": "Python Programming",
+    "icon": "🐍",
+    "description": "Programming fundamentals in Python — variables, control flow, and algorithmic thinking. Draws from MIT 6.0001 and NPTEL's Programming in Python.",
+    "concept_ids": ["cs-variables", "cs-branching", "ds-algorithms"]
+  },
+  {
+    "id": "linear-algebra",
+    "title": "Linear Algebra",
+    "icon": "📐",
+    "description": "Vectors, matrices, and solving linear systems. Draws from Gilbert Strang's MIT 18.06.",
+    "concept_ids": ["la-vectors", "la-matrices"]
+  },
+  {
+    "id": "ml-basics",
+    "title": "Machine Learning Foundations",
+    "icon": "🤖",
+    "description": "Supervised, unsupervised, and reinforcement learning paradigms. Draws from NPTEL's Intro to ML.",
+    "concept_ids": ["ml-supervised"]
+  }
+]

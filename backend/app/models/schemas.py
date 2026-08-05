@@ -23,11 +23,15 @@ class TokenOut(BaseModel):
 
 # ---------- Onboarding ----------
 class OnboardingIn(BaseModel):
-    course_id: str
+    # PRD: the intake gathers baseline, goals, evaluation frequency, hobbies.
+    # Learners pick one or more LEARNING TRACKS (curated groupings of concepts
+    # spanning multiple courses) rather than a single course, so the playlist
+    # can be composed across the OER library as described in "Curation".
+    track_ids: list[str] = Field(default_factory=list)
     baseline: str          # "beginner" | "intermediate" | "advanced"
     goal: str              # free-text — the learner's stated objective
     evaluation_frequency: str = "per_chunk"  # per_chunk | per_video | per_session
-    hobbies: list[str] = Field(default_factory=list)  # e.g. ["Marvel", "cricket", "cooking"]
+    hobbies: list[str] = Field(default_factory=list)
 
 
 # ---------- Quiz ----------
