@@ -1,0 +1,122 @@
+[
+  {
+    "id": "mit-6001",
+    "title": "Introduction to Computer Science and Programming in Python",
+    "provider": "MIT OCW",
+    "code": "6.0001",
+    "description": "MIT's flagship intro to CS using Python.",
+    "domain": "Computer Science",
+    "concepts": [
+      {"id": "cs-variables",  "name": "Variables & Types",     "difficulty": 1, "topic": "programming-basics"},
+      {"id": "cs-branching",  "name": "Branching & Iteration", "difficulty": 2, "topic": "programming-control-flow", "prereqs": ["cs-variables"]}
+    ],
+    "lectures": [
+      {
+        "id": "mit6001-l1", "title": "What is Computation?", "youtube_id": "nykOeWgQcHM", "duration_sec": 2820,
+        "concept_ids": ["cs-variables"],
+        "chunks": [
+          {"id": "mit6001-l1-c1", "start": 0,   "end": 30,   "summary": "Course intro — what computation means."},
+          {"id": "mit6001-l1-c2", "start": 30,  "end": 90,   "summary": "Computers as machines: primitive operations."},
+          {"id": "mit6001-l1-c3", "start": 90,  "end": 180,  "summary": "Types of programming languages — Python."},
+          {"id": "mit6001-l1-c4", "start": 180, "end": 300,  "summary": "Python objects and scalar types — int, float, bool."},
+          {"id": "mit6001-l1-c5", "start": 300, "end": 2820, "summary": "Expressions, variables, assignment."}
+        ]
+      },
+      {
+        "id": "mit6001-l2", "title": "Branching and Iteration", "youtube_id": "0jljZRnHwOI", "duration_sec": 2700,
+        "concept_ids": ["cs-branching"],
+        "chunks": [
+          {"id": "mit6001-l2-c1", "start": 0,   "end": 30,   "summary": "Strings — indexing, print and input."},
+          {"id": "mit6001-l2-c2", "start": 30,  "end": 90,   "summary": "Comparison and logical operators."},
+          {"id": "mit6001-l2-c3", "start": 90,  "end": 180,  "summary": "if / elif / else — branching rules."},
+          {"id": "mit6001-l2-c4", "start": 180, "end": 300,  "summary": "While loops — condition-driven repetition."},
+          {"id": "mit6001-l2-c5", "start": 300, "end": 2700, "summary": "For loops and range."}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mit-1806",
+    "title": "Linear Algebra",
+    "provider": "MIT OCW",
+    "code": "18.06",
+    "description": "Gilbert Strang's iconic linear algebra course.",
+    "domain": "Mathematics",
+    "concepts": [
+      {"id": "la-vectors",  "name": "Vectors & Linear Combinations", "difficulty": 1, "topic": "linear-algebra-basics"},
+      {"id": "la-matrices", "name": "Matrices & Elimination",         "difficulty": 2, "topic": "linear-algebra-matrices", "prereqs": ["la-vectors"]}
+    ],
+    "lectures": [
+      {
+        "id": "mit1806-l1", "title": "The Geometry of Linear Equations", "youtube_id": "J7DzL2_Na80", "duration_sec": 2520,
+        "concept_ids": ["la-vectors"],
+        "chunks": [
+          {"id": "mit1806-l1-c1", "start": 0,   "end": 30,   "summary": "Fundamental problem — solving Ax = b."},
+          {"id": "mit1806-l1-c2", "start": 30,  "end": 90,   "summary": "Row picture — lines meeting at a point in 2D."},
+          {"id": "mit1806-l1-c3", "start": 90,  "end": 180,  "summary": "Column picture — b as combination of columns."},
+          {"id": "mit1806-l1-c4", "start": 180, "end": 300,  "summary": "3D case — three planes meeting."},
+          {"id": "mit1806-l1-c5", "start": 300, "end": 2520, "summary": "Matrix form Ax=b in general."}
+        ]
+      },
+      {
+        "id": "mit1806-l2", "title": "Elimination with Matrices", "youtube_id": "QVKj3LADCnA", "duration_sec": 2760,
+        "concept_ids": ["la-matrices"],
+        "chunks": [
+          {"id": "mit1806-l2-c1", "start": 0,   "end": 30,   "summary": "Setting up elimination — 3x3 example."},
+          {"id": "mit1806-l2-c2", "start": 30,  "end": 90,   "summary": "First pivot — zeroing below."},
+          {"id": "mit1806-l2-c3", "start": 90,  "end": 180,  "summary": "Second pivot — upper-triangular U."},
+          {"id": "mit1806-l2-c4", "start": 180, "end": 300,  "summary": "Back-substitution — solving Ux = c."},
+          {"id": "mit1806-l2-c5", "start": 300, "end": 2760, "summary": "Elimination as matrix multiplication."}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "nptel-cs01",
+    "title": "Programming, Data Structures and Algorithms using Python",
+    "provider": "NPTEL",
+    "code": "NOC:CS20",
+    "description": "IIT Madras (Prof. Madhavan Mukund) — foundational DSA in Python.",
+    "domain": "Computer Science",
+    "concepts": [
+      {"id": "ds-algorithms", "name": "Algorithms & GCD", "difficulty": 1, "topic": "programming-basics"}
+    ],
+    "lectures": [
+      {
+        "id": "nptelcs01-l1", "title": "Algorithms and Programming: Simple GCD", "youtube_id": "9MmC_uGjBsM", "duration_sec": 1740,
+        "concept_ids": ["ds-algorithms"],
+        "chunks": [
+          {"id": "nptelcs01-l1-c1", "start": 0,   "end": 30,   "summary": "What is an algorithm — a precise recipe."},
+          {"id": "nptelcs01-l1-c2", "start": 30,  "end": 90,   "summary": "Framing the GCD problem."},
+          {"id": "nptelcs01-l1-c3", "start": 90,  "end": 180,  "summary": "Naive GCD — checking every divisor."},
+          {"id": "nptelcs01-l1-c4", "start": 180, "end": 300,  "summary": "Why the naive approach is slow."},
+          {"id": "nptelcs01-l1-c5", "start": 300, "end": 1740, "summary": "Euclid's algorithm — remainders shrink the problem."}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "nptel-ml01",
+    "title": "Introduction to Machine Learning",
+    "provider": "NPTEL",
+    "code": "NOC:ML23",
+    "description": "IIT Madras (Prof. Balaraman Ravindran).",
+    "domain": "Machine Learning",
+    "concepts": [
+      {"id": "ml-supervised", "name": "Supervised Learning Basics", "difficulty": 2, "topic": "ml-basics"}
+    ],
+    "lectures": [
+      {
+        "id": "nptelml01-l1", "title": "Introduction to Machine Learning", "youtube_id": "ZqiJS7445EA", "duration_sec": 900,
+        "concept_ids": ["ml-supervised"],
+        "chunks": [
+          {"id": "nptelml01-l1-c1", "start": 0,   "end": 30,  "summary": "What machine learning means."},
+          {"id": "nptelml01-l1-c2", "start": 30,  "end": 90,  "summary": "Everyday examples — spam, recommendations."},
+          {"id": "nptelml01-l1-c3", "start": 90,  "end": 180, "summary": "Supervised vs unsupervised."},
+          {"id": "nptelml01-l1-c4", "start": 180, "end": 300, "summary": "Reinforcement learning — the third paradigm."},
+          {"id": "nptelml01-l1-c5", "start": 300, "end": 900, "summary": "Course roadmap."}
+        ]
+      }
+    ]
+  }
+]

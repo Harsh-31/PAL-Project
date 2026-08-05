@@ -1,0 +1,29 @@
+# Optional: docker-compose for the MVP. Ollama runs on the host by default
+# (so it can use your GPU). MongoDB and Neo4j use the free-tier hosted
+# services (Atlas + Sandbox) per the requirements, so no local containers
+# for them either. This file only containerises the app tier.
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file: ./backend/.env
+    # Host-network access so the container can reach Ollama on localhost.
+    # On Linux use network_mode: host instead of the extra_hosts trick if simpler.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
