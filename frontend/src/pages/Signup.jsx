@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import BrandLogo from '../components/BrandLogo';
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -25,10 +26,17 @@ export default function Signup() {
   };
 
   return (
-    <div className="auth-shell">
+    <div className="center-full">
       <div className="card auth-card">
-        <h1>Create your account</h1>
-        <p className="subtitle">Start learning with <b>PAL</b>, your adaptive tutor.</p>
+        <div className="auth-brand">
+          <div className="brand">
+            <BrandLogo size={30} />
+            <span className="brand-pipe">|</span>
+            <span className="brand-pal">PAL</span>
+          </div>
+          <p>Personal Adaptive Learning · by IAIRO</p>
+        </div>
+        <h1 style={{ textAlign: 'center', fontSize: 20, marginBottom: 24 }}>Create your account</h1>
         <form onSubmit={submit}>
           <div className="field">
             <label className="label">Full name</label>

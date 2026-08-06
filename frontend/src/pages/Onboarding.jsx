@@ -7,8 +7,8 @@ export default function Onboarding() {
   const { refresh } = useAuth();
   const nav = useNavigate();
   const [step, setStep] = useState(1);
-  const [courses, setCourses] = useState([]);
-  const [course, setCourse] = useState(null);
+  const [tracks, setTracks] = useState([]);
+  const [selectedTracks, setSelectedTracks] = useState([]);
   const [baseline, setBaseline] = useState('beginner');
   const [goal, setGoal] = useState('');
   const [freq, setFreq] = useState('per_chunk');
@@ -18,13 +18,18 @@ export default function Onboarding() {
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    api('/api/courses').then(setCourses).catch(e => setErr(e.message));
+    api('/api/tracks').then(setTracks).catch(e => setErr(e.message));
   }, []);
+
+  const toggleTrack = (id) => {
+    setSelectedTracks(sel =>
+      sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id]
+    );
+  };
 
   const addHobby = () => {
     const v = hobbyDraft.trim();
-    if (!v) return;
-    if (hobbies.includes(v)) return;
+    if (!v || hobbies.includes(v)) return;
     setHobbies([...hobbies, v]);
     setHobbyDraft('');
   };
@@ -35,7 +40,7 @@ export default function Onboarding() {
       await api('/api/onboarding', {
         method: 'POST',
         body: {
-          course_id: course.id,
+          track_ids: selectedTracks,
           baseline,
           goal,
           evaluation_frequency: freq,
@@ -51,40 +56,57 @@ export default function Onboarding() {
     }
   };
 
+  const selectedTrackObjects = tracks.filter(t => selectedTracks.includes(t.id));
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>
       <div style={{ marginBottom: 16, color: 'var(--muted)' }}>Step {step} of 4</div>
 
       {step === 1 && (
         <div>
-          <h2>Pick a course to start with</h2>
-          <p className="muted">You can add more later. Pick the one that matches your current focus.</p>
+          <h2>What do you want to learn?</h2>
+          <p className="muted">
+            Pick one or more tracks. PAL will compose a custom playlist from MIT OCW,
+            NPTEL, and other open courses — you'll see lectures from whichever course
+            teaches each concept best.
+          </p>
           <div className="course-grid" style={{ padding: 0, marginTop: 16 }}>
-            {courses.map(c => (
+            {tracks.map(t => (
               <div
-                key={c.id}
+                key={t.id}
                 className={`card course-card`}
-                style={course?.id === c.id ? { borderColor: 'var(--primary)' } : {}}
-                onClick={() => setCourse(c)}
+                style={selectedTracks.includes(t.id) ? { borderColor: 'var(--primary)' } : {}}
+                onClick={() => toggleTrack(t.id)}
               >
-                <div className="provider">{c.provider} · {c.code}</div>
-                <h3>{c.title}</h3>
-                <p className="muted">{c.description}</p>
+                <div className="provider">
+                  {t.icon || '📚'} · {t.stats?.courses ?? 0} course{t.stats?.courses === 1 ? '' : 's'}
+                  &nbsp;·&nbsp;{t.stats?.lectures ?? 0} lecture{t.stats?.lectures === 1 ? '' : 's'}
+                </div>
+                <h3>{t.title}</h3>
+                <p className="muted">{t.description}</p>
+                {selectedTracks.includes(t.id) && (
+                  <div style={{ marginTop: 8, color: 'var(--primary)', fontSize: 13 }}>✓ Selected</div>
+                )}
               </div>
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-            <button disabled={!course} onClick={() => setStep(2)}>Continue</button>
+            <button disabled={selectedTracks.length === 0} onClick={() => setStep(2)}>
+              Continue with {selectedTracks.length} track{selectedTracks.length === 1 ? '' : 's'}
+            </button>
           </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="card">
-          <h2>Your baseline</h2>
-          <p className="muted">How would you describe your current knowledge of <b>{course.title}</b>?</p>
+          <h2>Your baseline & goal</h2>
+          <p className="muted">
+            Tell PAL where you are today and what you want to achieve. This shapes
+            question difficulty and the summaries you'll see.
+          </p>
           <div className="field" style={{ marginTop: 16 }}>
-            <label className="label">Level</label>
+            <label className="label">Your current level in these topics</label>
             <select value={baseline} onChange={e => setBaseline(e.target.value)}>
               <option value="beginner">Beginner — new to the topic</option>
               <option value="intermediate">Intermediate — some prior exposure</option>
@@ -141,9 +163,15 @@ export default function Onboarding() {
 
       {step === 4 && (
         <div className="card">
-          <h2>Ready to go</h2>
+          <h2>Your learning plan</h2>
+          <p className="muted">PAL will build your playlist from these tracks. You can change any of this later via <b>Change course</b>.</p>
           <div style={{ marginTop: 12 }}>
-            <p><b>Course:</b> {course.title}</p>
+            <p><b>Tracks:</b></p>
+            <ul style={{ marginTop: 4, marginLeft: 20 }}>
+              {selectedTrackObjects.map(t => (
+                <li key={t.id}>{t.icon || '📚'} {t.title}</li>
+              ))}
+            </ul>
             <p><b>Baseline:</b> {baseline}</p>
             <p><b>Goal:</b> {goal}</p>
             <p><b>Evaluation:</b> {freq.replace('_', ' ')}</p>
@@ -152,7 +180,7 @@ export default function Onboarding() {
           {err && <div className="error">{err}</div>}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
             <button className="ghost" onClick={() => setStep(3)}>Back</button>
-            <button onClick={finish} disabled={busy}>{busy ? 'Setting up…' : 'Start learning'}</button>
+            <button onClick={finish} disabled={busy}>{busy ? 'Setting up…' : 'Build my playlist'}</button>
           </div>
         </div>
       )}

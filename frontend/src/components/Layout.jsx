@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import BrandLogo from './BrandLogo';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -8,7 +9,12 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="brand">PAL<span className="accent">MS</span></div>
+        <div className="brand">
+          <BrandLogo size={26} />
+          <span className="brand-pipe">|</span>
+          <span className="brand-pal">PAL</span>
+          <span className="brand-tag">Personal Adaptive Learning</span>
+        </div>
         <nav>
           <NavLink to="/" end>{({ isActive }) => <button className={isActive ? 'active' : ''}>Dashboard</button>}</NavLink>
           <NavLink to="/learn">{({ isActive }) => <button className={isActive ? 'active' : ''}>Learn</button>}</NavLink>

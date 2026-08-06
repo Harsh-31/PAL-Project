@@ -44,6 +44,8 @@ async def login(payload: LoginIn):
             "name": user["name"],
             "email": user["email"],
             "onboarded": user.get("onboarded", False),
-            "current_course_id": user.get("current_course_id"),
+            "current_course_id": None,  # legacy, removed
+            "track_ids": user.get("track_ids", []),
+            "target_concept_ids": user.get("target_concept_ids", []),
         },
     )

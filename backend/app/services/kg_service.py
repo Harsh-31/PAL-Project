@@ -315,3 +315,113 @@ async def get_supplementary_lectures(user_id: str, course_id: str,
                 "for_concept_name": rec["for_concept_name"],
             })
         return out
+
+
+# =========================================================================
+# LEARNING TRACKS + COMPOSED (multi-course) PLAYLIST
+# PRD: "PAL generates a custom video playlist from a library of open-source
+# courses" — a track is a curated group of concepts spanning multiple courses,
+# and the playlist is the union of lectures teaching those concepts.
+# =========================================================================
+
+_TRACKS_FILE = Path(__file__).parent.parent / "data" / "tracks.json"
+
+
+def load_tracks() -> list[dict]:
+    """Read the static tracks catalog from disk."""
+    if not _TRACKS_FILE.exists():
+        return []
+    return json.loads(_TRACKS_FILE.read_text())
+
+
+async def get_all_tracks_with_metadata() -> list[dict]:
+    """Tracks enriched with the number of courses + lectures each spans.
+
+    Used by the onboarding UI to show what a track actually contains.
+    """
+    tracks = load_tracks()
+    if not tracks:
+        return []
+    driver = get_driver()
+    async with driver.session() as s:
+        for track in tracks:
+            cids = track["concept_ids"]
+            r = await s.run(
+                """MATCH (c:Course)-[:CONTAINS]->(k:Concept)
+                   WHERE k.id IN $cids
+                   OPTIONAL MATCH (l:LectureChunk)-[:TEACHES]->(k)
+                   RETURN count(DISTINCT c) AS courses,
+                          count(DISTINCT l.lecture_id) AS lectures""",
+                cids=cids,
+            )
+            rec = await r.single()
+            track["stats"] = {
+                "courses": rec["courses"] if rec else 0,
+                "lectures": rec["lectures"] if rec else 0,
+            }
+    return tracks
+
+
+async def get_composed_playlist(user_id: str, target_concept_ids: list[str]) -> list[dict]:
+    """Compose a cross-course playlist from lectures that teach the target concepts.
+
+    Ordering:
+      1. Concept difficulty ASC (easier first)
+      2. Then by lecture title for stability
+    Returns lecture dicts with the same shape as get_playlist_for_course.
+    """
+    if not target_concept_ids:
+        return []
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (c:Course)-[:CONTAINS]->(k:Concept)
+               WHERE k.id IN $cids
+               MATCH (l:LectureChunk)-[:TEACHES]->(k)
+               RETURN DISTINCT
+                   l.lecture_id AS lid, l.title AS title,
+                   l.youtube_id AS yt, l.duration AS dur,
+                   c.id AS course_id, c.title AS course_title,
+                   collect(DISTINCT {
+                       id: l.id, start: l.start, end: l.end,
+                       summary: l.summary, concept_id: k.id,
+                       concept_name: k.name, difficulty: k.difficulty
+                   }) AS chunks""",
+            cids=target_concept_ids,
+        )
+        rows = [dict(rec) async for rec in r]
+    lectures = []
+    for row in rows:
+        chunks = sorted(row["chunks"], key=lambda c: c["start"])
+        min_diff = min((c["difficulty"] for c in chunks if c["difficulty"]), default=99)
+        lectures.append({
+            "lecture_id": row["lid"],
+            "title": row["title"],
+            "youtube_id": row["yt"],
+            "duration_sec": row["dur"],
+            "source_course_id": row["course_id"],
+            "source_course_title": row["course_title"],
+            "chunks": chunks,
+            "_min_diff": min_diff,
+        })
+    lectures.sort(key=lambda l: (l["_min_diff"], l["title"]))
+    for l in lectures:
+        l.pop("_min_diff", None)
+    return lectures
+
+
+async def get_mastery_for_concepts(user_id: str, concept_ids: list[str]) -> list[dict]:
+    """Same shape as get_all_mastery but scoped to a concept list rather than a course."""
+    if not concept_ids:
+        return []
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (k:Concept) WHERE k.id IN $cids
+               OPTIONAL MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k)
+               RETURN k.id AS id, k.name AS name, k.difficulty AS difficulty,
+                      coalesce(m.score, 0) AS score,
+                      coalesce(m.attempts, 0) AS attempts""",
+            cids=concept_ids, uid=user_id,
+        )
+        return [dict(rec) async for rec in r]
