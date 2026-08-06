@@ -33,31 +33,8 @@ Learners pick a **learning goal** (not a course) and PAL composes a playlist acr
 
 ## Architecture
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│  React frontend  (Vite)                                            │
-│  Onboarding · Learn · Dashboard · KG Explorer · Sidebar (notes/    │
-│  chat/code) · Adaptive quiz overlay                                │
-└──────────────────────────┬────────────────────────────────────────┘
-                           │  /api/*
-┌──────────────────────────▼────────────────────────────────────────┐
-│  FastAPI backend                                                   │
-│  ┌──────────────┐  ┌────────────────┐  ┌──────────────────────┐   │
-│  │ Auth (JWT)   │  │ PAL-Agent      │  │ Recommender          │   │
-│  │              │  │ (micro-loop)   │  │ (content-based)      │   │
-│  └──────────────┘  └────────────────┘  └──────────────────────┘   │
-│                                                                    │
-│  Ollama service · KG service · Mongo · Neo4j drivers               │
-└───────┬─────────────────────┬────────────────────┬────────────────┘
-        │                     │                    │
-   ┌────▼────┐          ┌─────▼─────┐        ┌─────▼──────┐
-   │ MongoDB │          │  Neo4j    │        │  Ollama    │
-   │ users   │          │  T-Box    │        │  llama3.2  │
-   │ notes   │          │  A-Box    │        │  nomic     │
-   │ chat    │          │  Process  │        │            │
-   │ quizzes │          │  KG       │        │            │
-   └─────────┘          └───────────┘        └────────────┘
-```
+<img width="1536" height="1024" alt="ChatGPT Image Aug 5, 2026, 11_57_47 PM" src="https://github.com/user-attachments/assets/7e17bfa7-2071-465c-9293-db4bf23af988" />
+
 
 ### Three-layer neuro-symbolic Knowledge Graph (Neo4j)
 
@@ -297,7 +274,7 @@ When a chunk boundary fires (~30s into the video), the frontend polls the YouTub
    - `AdvanceDifficulty` → resume + next quiz will be harder
    - `SkipRedundant` → auto-skip past the next chunk teaching the same concept
 9. **Post-quiz summary** — the hobby-analogy summary loads into the side panel.
-10. **On lecture complete** — the playlist re-fetches. Struggling concepts bubble up with 🎯 Focus, mastered ones sink and dim, and the recommender may inject a **bridge lecture** from another course.
+10. **On lecture complete** — the playlist re-fetches. Struggling concepts bubble up with Focus, mastered ones sink and dim, and the recommender may inject a **bridge lecture** from another course.
 
 ---
 
