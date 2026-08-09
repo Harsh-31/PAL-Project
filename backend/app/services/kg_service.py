@@ -29,7 +29,7 @@ async def seed_courses_if_empty() -> None:
         # with the current seed file. TEACHES edges are dropped with the nodes.
         await s.run("MATCH (l:LectureChunk) DETACH DELETE l")
 
-        courses = json.loads(DATA_FILE.read_text())
+        courses = json.loads(DATA_FILE.read_text(encoding="utf-8"))
         for course in courses:
             await s.run(
                 """MERGE (c:Course {id:$id})
@@ -331,7 +331,7 @@ def load_tracks() -> list[dict]:
     """Read the static tracks catalog from disk."""
     if not _TRACKS_FILE.exists():
         return []
-    return json.loads(_TRACKS_FILE.read_text())
+    return json.loads(_TRACKS_FILE.read_text(encoding="utf-8"))
 
 
 async def get_all_tracks_with_metadata() -> list[dict]:

@@ -14,47 +14,47 @@
     ],
     "lectures": [
       {
-        "id": "mit6001-l1", "title": "What is Computation?", "youtube_id": "nykOeWgQcHM", "duration_sec": 2820,
+        "id": "mit6001-l1", "title": "What is Computation?", "youtube_id": "nykOeWgQcHM", "duration_sec": 2586,
         "concept_ids": ["cs-variables"],
         "chunks": [
           {"id": "mit6001-l1-c1", "start": 0,   "end": 30,   "summary": "Course intro — what computation means."},
           {"id": "mit6001-l1-c2", "start": 30,  "end": 90,   "summary": "Computers as machines: primitive operations."},
           {"id": "mit6001-l1-c3", "start": 90,  "end": 180,  "summary": "Types of programming languages — Python."},
           {"id": "mit6001-l1-c4", "start": 180, "end": 300,  "summary": "Python objects and scalar types — int, float, bool."},
-          {"id": "mit6001-l1-c5", "start": 300, "end": 2820, "summary": "Expressions, variables, assignment."}
+          {"id": "mit6001-l1-c5", "start": 300, "end": 2586, "summary": "Expressions, variables, assignment."}
         ]
       },
       {
-        "id": "mit6001-l2", "title": "Branching and Iteration", "youtube_id": "0jljZRnHwOI", "duration_sec": 2700,
+        "id": "mit6001-l2", "title": "Branching and Iteration", "youtube_id": "0jljZRnHwOI", "duration_sec": 2611,
         "concept_ids": ["cs-branching"],
         "chunks": [
           {"id": "mit6001-l2-c1", "start": 0,   "end": 30,   "summary": "Strings — indexing, print and input."},
           {"id": "mit6001-l2-c2", "start": 30,  "end": 90,   "summary": "Comparison and logical operators."},
           {"id": "mit6001-l2-c3", "start": 90,  "end": 180,  "summary": "if / elif / else — branching rules."},
           {"id": "mit6001-l2-c4", "start": 180, "end": 300,  "summary": "While loops — condition-driven repetition."},
-          {"id": "mit6001-l2-c5", "start": 300, "end": 2700, "summary": "For loops and range."}
+          {"id": "mit6001-l2-c5", "start": 300, "end": 2611, "summary": "For loops and range."}
         ]
       },
       {
-        "id": "mit6001-l3", "title": "String Manipulation, Guess and Check, Bisection", "youtube_id": "SE4P7IVCunE", "duration_sec": 2880,
+        "id": "mit6001-l3", "title": "String Manipulation, Guess and Check, Bisection", "youtube_id": "SE4P7IVCunE", "duration_sec": 2702,
         "concept_ids": ["cs-strings"],
         "chunks": [
           {"id": "mit6001-l3-c1", "start": 0,   "end": 30,   "summary": "Recap of branching + intro to strings."},
           {"id": "mit6001-l3-c2", "start": 30,  "end": 90,   "summary": "String indexing, slicing, and immutability."},
           {"id": "mit6001-l3-c3", "start": 90,  "end": 180,  "summary": "Guess-and-check algorithms — exhaustive search."},
           {"id": "mit6001-l3-c4", "start": 180, "end": 300,  "summary": "Approximation methods — narrowing a range."},
-          {"id": "mit6001-l3-c5", "start": 300, "end": 2880, "summary": "Bisection search — halving to find the root."}
+          {"id": "mit6001-l3-c5", "start": 300, "end": 2702, "summary": "Bisection search — halving to find the root."}
         ]
       },
       {
-        "id": "mit6001-l4", "title": "Decomposition, Abstraction, and Functions", "youtube_id": "MjbuarJ7SE0", "duration_sec": 3060,
+        "id": "mit6001-l4", "title": "Decomposition, Abstraction, and Functions", "youtube_id": "MjbuarJ7SE0", "duration_sec": 2469,
         "concept_ids": ["cs-functions"],
         "chunks": [
           {"id": "mit6001-l4-c1", "start": 0,   "end": 30,   "summary": "Motivation — why we need functions."},
           {"id": "mit6001-l4-c2", "start": 30,  "end": 90,   "summary": "Decomposition — breaking programs into pieces."},
           {"id": "mit6001-l4-c3", "start": 90,  "end": 180,  "summary": "Abstraction — hiding implementation details."},
           {"id": "mit6001-l4-c4", "start": 180, "end": 300,  "summary": "Function definition, parameters, return values."},
-          {"id": "mit6001-l4-c5", "start": 300, "end": 3060, "summary": "Scope — how variables are looked up."}
+          {"id": "mit6001-l4-c5", "start": 300, "end": 2469, "summary": "Scope — how variables are looked up."}
         ]
       }
     ]
@@ -72,25 +72,25 @@
     ],
     "lectures": [
       {
-        "id": "mit1806-l1", "title": "The Geometry of Linear Equations", "youtube_id": "J7DzL2_Na80", "duration_sec": 2520,
+        "id": "mit1806-l1", "title": "The Geometry of Linear Equations", "youtube_id": "J7DzL2_Na80", "duration_sec": 2389,
         "concept_ids": ["la-vectors"],
         "chunks": [
           {"id": "mit1806-l1-c1", "start": 0,   "end": 30,   "summary": "Fundamental problem — solving Ax = b."},
           {"id": "mit1806-l1-c2", "start": 30,  "end": 90,   "summary": "Row picture — lines meeting at a point in 2D."},
           {"id": "mit1806-l1-c3", "start": 90,  "end": 180,  "summary": "Column picture — b as combination of columns."},
           {"id": "mit1806-l1-c4", "start": 180, "end": 300,  "summary": "3D case — three planes meeting."},
-          {"id": "mit1806-l1-c5", "start": 300, "end": 2520, "summary": "Matrix form Ax=b in general."}
+          {"id": "mit1806-l1-c5", "start": 300, "end": 2389, "summary": "Matrix form Ax=b in general."}
         ]
       },
       {
-        "id": "mit1806-l2", "title": "Elimination with Matrices", "youtube_id": "QVKj3LADCnA", "duration_sec": 2760,
+        "id": "mit1806-l2", "title": "Elimination with Matrices", "youtube_id": "QVKj3LADCnA", "duration_sec": 2862,
         "concept_ids": ["la-matrices"],
         "chunks": [
           {"id": "mit1806-l2-c1", "start": 0,   "end": 30,   "summary": "Setting up elimination — 3x3 example."},
           {"id": "mit1806-l2-c2", "start": 30,  "end": 90,   "summary": "First pivot — zeroing below."},
           {"id": "mit1806-l2-c3", "start": 90,  "end": 180,  "summary": "Second pivot — upper-triangular U."},
           {"id": "mit1806-l2-c4", "start": 180, "end": 300,  "summary": "Back-substitution — solving Ux = c."},
-          {"id": "mit1806-l2-c5", "start": 300, "end": 2760, "summary": "Elimination as matrix multiplication."}
+          {"id": "mit1806-l2-c5", "start": 300, "end": 2862, "summary": "Elimination as matrix multiplication."}
         ]
       }
     ]
@@ -107,14 +107,14 @@
     ],
     "lectures": [
       {
-        "id": "nptelcs01-l1", "title": "Algorithms and Programming: Simple GCD", "youtube_id": "9MmC_uGjBsM", "duration_sec": 1740,
+        "id": "nptelcs01-l1", "title": "Algorithms and Programming: Simple GCD", "youtube_id": "9MmC_uGjBsM", "duration_sec": 1649,
         "concept_ids": ["ds-algorithms"],
         "chunks": [
           {"id": "nptelcs01-l1-c1", "start": 0,   "end": 30,   "summary": "What is an algorithm — a precise recipe."},
           {"id": "nptelcs01-l1-c2", "start": 30,  "end": 90,   "summary": "Framing the GCD problem."},
           {"id": "nptelcs01-l1-c3", "start": 90,  "end": 180,  "summary": "Naive GCD — checking every divisor."},
           {"id": "nptelcs01-l1-c4", "start": 180, "end": 300,  "summary": "Why the naive approach is slow."},
-          {"id": "nptelcs01-l1-c5", "start": 300, "end": 1740, "summary": "Euclid's algorithm — remainders shrink the problem."}
+          {"id": "nptelcs01-l1-c5", "start": 300, "end": 1649, "summary": "Euclid's algorithm — remainders shrink the problem."}
         ]
       }
     ]
