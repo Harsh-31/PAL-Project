@@ -3,9 +3,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # MongoDB
+    # MongoDB (operational store — users, quiz attempts, notes, etc.)
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB: str = "palms"
+    # PALMS course/transcript data lives in the same cluster; override if separate
+    PALMS_MONGODB_DB: str = "palms"
 
     # Neo4j
     NEO4J_URI: str = "bolt://localhost:7687"

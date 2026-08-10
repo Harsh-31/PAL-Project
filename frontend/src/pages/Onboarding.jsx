@@ -66,9 +66,9 @@ export default function Onboarding() {
         <div>
           <h2>What do you want to learn?</h2>
           <p className="muted">
-            Pick one or more tracks. PAL will compose a custom playlist from MIT OCW,
-            NPTEL, and other open courses — you'll see lectures from whichever course
-            teaches each concept best.
+            Pick tracks to guide your playlist, or skip and let PAL find the best
+            content based on your learning goal. PAL will compose a custom playlist
+            from MIT OCW, NPTEL, and other open courses.
           </p>
           <div className="course-grid" style={{ padding: 0, marginTop: 16 }}>
             {tracks.map(t => (
@@ -91,8 +91,10 @@ export default function Onboarding() {
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-            <button disabled={selectedTracks.length === 0} onClick={() => setStep(2)}>
-              Continue with {selectedTracks.length} track{selectedTracks.length === 1 ? '' : 's'}
+            <button onClick={() => setStep(2)}>
+              {selectedTracks.length > 0
+                ? `Continue with ${selectedTracks.length} track${selectedTracks.length === 1 ? '' : 's'}`
+                : 'Skip — let PAL match your goal'}
             </button>
           </div>
         </div>
@@ -166,12 +168,18 @@ export default function Onboarding() {
           <h2>Your learning plan</h2>
           <p className="muted">PAL will build your playlist from these tracks. You can change any of this later via <b>Change course</b>.</p>
           <div style={{ marginTop: 12 }}>
-            <p><b>Tracks:</b></p>
-            <ul style={{ marginTop: 4, marginLeft: 20 }}>
-              {selectedTrackObjects.map(t => (
-                <li key={t.id}>{t.icon || '📚'} {t.title}</li>
-              ))}
-            </ul>
+            {selectedTrackObjects.length > 0 ? (
+              <>
+                <p><b>Tracks:</b></p>
+                <ul style={{ marginTop: 4, marginLeft: 20 }}>
+                  {selectedTrackObjects.map(t => (
+                    <li key={t.id}>{t.icon || '📚'} {t.title}</li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p><b>Tracks:</b> None — PAL will match your goal across all courses</p>
+            )}
             <p><b>Baseline:</b> {baseline}</p>
             <p><b>Goal:</b> {goal}</p>
             <p><b>Evaluation:</b> {freq.replace('_', ' ')}</p>

@@ -26,9 +26,19 @@ Falls back to topic-tag matching when embeddings are missing (e.g. the embed
 model isn't installed) so the app degrades gracefully.
 """
 from __future__ import annotations
-import math
+import math, re
+from collections import deque
 from app.database.neo4j_db import get_driver
 from app.services.ollama_service import ollama
+
+_STOP_WORDS = frozenset(
+    "i me my we our you your he she it they them a an the and but or so if in on at to for of "
+    "with by from is am are was were be been has have had do does did will would shall should "
+    "can could may might must not no nor very too also just about above after again all any "
+    "between both each few more most other some such than that these this those through under "
+    "until up what when where which while who whom why how want learn master understand study "
+    "get know".split()
+)
 
 
 # ---------- vector math ----------
@@ -56,14 +66,16 @@ def _concept_embed_text(name: str, topic: str, chunk_summaries: list[str]) -> st
 
     Concept name is the primary signal; teaching summaries anchor it in domain
     context so 'Variables' in Python doesn't collide with 'Variables' in stats.
+    nomic-embed-text has an 8192-token context (~6000 chars safe limit).
     """
     parts = [name]
     if topic:
         parts.append(f"topic: {topic}")
     if chunk_summaries:
-        # keep it short — embedding quality suffers past ~200 tokens on nomic
-        parts.append(" ".join(chunk_summaries[:3]))
-    return ". ".join(parts)
+        combined = " ".join(chunk_summaries[:3])
+        parts.append(combined[:2000])
+    text = ". ".join(parts)
+    return text[:4000]
 
 
 async def ensure_concept_embeddings() -> dict:
@@ -264,3 +276,122 @@ async def recommend_supplementary(user_id: str, target_concept_ids: list[str],
                     "recommendation_source": "semantic",
                 }
     return sorted(picked.values(), key=lambda l: -l.get("similarity", 0))
+
+
+# ---------- goal-based concept matching ----------
+
+async def _fetch_all_concepts_basic() -> list[dict]:
+    """Lightweight fetch of all concepts (no embeddings, no chunks)."""
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (c:Course)-[:CONTAINS]->(k:Concept)
+               RETURN k.id AS concept_id, k.name AS concept_name,
+                      coalesce(k.topic, '') AS topic,
+                      k.difficulty AS difficulty, c.id AS course_id,
+                      c.tags AS course_tags"""
+        )
+        return [dict(rec) async for rec in r]
+
+
+def _extract_keywords(text: str) -> list[str]:
+    tokens = re.findall(r"[a-z0-9+#]+", text.lower())
+    return [t for t in tokens if t not in _STOP_WORDS and len(t) > 1]
+
+
+async def _keyword_fallback_match(
+    goal_text: str,
+    track_concept_ids: list[str] | None = None,
+    top_k: int = 40,
+) -> list[str]:
+    keywords = _extract_keywords(goal_text)
+    if not keywords:
+        return []
+    all_concepts = await _fetch_all_concepts_basic()
+    track_set = set(track_concept_ids or [])
+    scored: list[tuple[float, str]] = []
+    for c in all_concepts:
+        haystack = f"{c['concept_name']} {c['topic']}".lower()
+        tags = " ".join(c.get("course_tags") or []).lower()
+        hits = sum(1 for kw in keywords if kw in haystack or kw in tags)
+        if hits == 0 and c["concept_id"] not in track_set:
+            continue
+        score = hits + (0.5 if c["concept_id"] in track_set else 0)
+        scored.append((score, c["concept_id"]))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    seen: set[str] = set()
+    out: list[str] = []
+    for _, cid in scored[:top_k]:
+        if cid not in seen:
+            seen.add(cid)
+            out.append(cid)
+    return out
+
+
+async def match_goal_to_concepts(
+    goal_text: str,
+    baseline: str = "beginner",
+    track_concept_ids: list[str] | None = None,
+    top_k: int = 40,
+    similarity_floor: float = 0.55,
+    track_boost: float = 0.10,
+) -> list[str]:
+    """Match a free-text learning goal against all concept embeddings in the KG.
+
+    Returns up to top_k concept_ids ranked by semantic similarity to the goal.
+    Only concepts above similarity_floor are included — this prevents
+    unrelated courses from leaking into the playlist.
+    If tracks are selected, those concepts get a small additive score boost
+    but still must clear the similarity floor independently.
+    Falls back to keyword matching when Ollama is unavailable.
+    """
+    goal_vec = await ollama.embed(goal_text)
+    if not goal_vec:
+        return await _keyword_fallback_match(goal_text, track_concept_ids, top_k)
+
+    all_concepts = await _fetch_all_concepts_with_embeddings()
+    if not all_concepts:
+        return await _keyword_fallback_match(goal_text, track_concept_ids, top_k)
+
+    track_set = set(track_concept_ids or [])
+    scored: list[tuple[float, float, str]] = []
+    for c in all_concepts:
+        sim = cos_sim(goal_vec, c["embedding"])
+        if sim < similarity_floor:
+            continue
+        boosted = sim + (track_boost if c["concept_id"] in track_set else 0)
+        scored.append((boosted, sim, c["concept_id"]))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    seen: set[str] = set()
+    out: list[str] = []
+    for _, _, cid in scored[:top_k]:
+        if cid not in seen:
+            seen.add(cid)
+            out.append(cid)
+    return out
+
+
+# ---------- baseline-level filtering ----------
+
+def apply_baseline_filter(
+    concept_ids: list[str],
+    difficulty_map: dict[str, int],
+    baseline: str,
+    prerequisite_ids: set[str],
+) -> list[str]:
+    """Filter concepts by the user's proficiency level.
+
+    Beginner: keep all (ordering handles easy→hard).
+    Intermediate: keep difficulty >= 2, plus difficulty=1 if it's a prerequisite.
+    Advanced: keep difficulty >= 3, plus lower if it's a prerequisite.
+    """
+    if baseline == "beginner":
+        return concept_ids
+
+    min_difficulty = 3 if baseline == "advanced" else 2
+    return [
+        cid for cid in concept_ids
+        if (difficulty_map.get(cid, 1)) >= min_difficulty
+        or cid in prerequisite_ids
+    ]

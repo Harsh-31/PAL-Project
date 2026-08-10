@@ -6,13 +6,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database.mongo import connect_to_mongo, close_mongo_connection
 from app.database.neo4j_db import connect_to_neo4j, close_neo4j_connection
-from app.services import kg_service, recommender
+from app.services import kg_service, recommender, sync_service
 from app.routes import auth, courses, quiz, sidebar, dashboard
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_to_mongo()
+    # Sync courses and transcripts from MongoDB before seeding Neo4j
+    try:
+        course_report = await sync_service.sync_courses()
+        print(f"[Sync] courses: {course_report}")
+        transcript_report = await sync_service.sync_transcripts()
+        print(f"[Sync] transcripts: {transcript_report}")
+    except Exception as e:
+        print(f"[Sync] WARNING — MongoDB sync failed, using local cache: {e}")
     await connect_to_neo4j()
     await kg_service.seed_courses_if_empty()
     # Recommender: embed any concepts that don't yet have vectors.

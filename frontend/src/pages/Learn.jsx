@@ -28,7 +28,8 @@ export default function Learn() {
   const timerRef = useRef(null);
 
   const trackIds = user?.track_ids || [];
-  const hasTracks = trackIds.length > 0;
+  const targetConcepts = user?.target_concept_ids || [];
+  const hasTracks = trackIds.length > 0 || targetConcepts.length > 0;
 
   const [masteryMap, setMasteryMap] = useState({});  // concept_id -> {score, attempts}
 

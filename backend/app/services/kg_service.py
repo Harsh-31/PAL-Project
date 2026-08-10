@@ -5,8 +5,13 @@ Responsibilities:
   2. Create/update Learner (A-Box) with hobbies + baseline
   3. Record interactions (quiz attempts, mastery updates)
   4. Query mastery / next-best chunk for playlist generation
+
+Reads courses.json in the FULL MongoDB/PALMS schema (course_id, lecture_id,
+chunk_id, start_time/end_time, summary_text, difficulty_score, etc.).
 """
 import json
+import re
+from collections import deque
 from pathlib import Path
 from app.database.neo4j_db import get_driver
 
@@ -14,63 +19,162 @@ from app.database.neo4j_db import get_driver
 DATA_FILE = Path(__file__).parent.parent / "data" / "courses.json"
 
 
+def _extract_youtube_id(url: str) -> str:
+    if not url:
+        return ""
+    m = re.search(r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})", url)
+    return m.group(1) if m else ""
+
+
 async def seed_courses_if_empty() -> None:
     """T-Box seed — courses, concepts, prereqs, lecture chunks.
 
-    Now runs on every startup: courses/concepts are idempotently MERGE-upserted,
-    and lecture chunks are wiped and rebuilt so edits to courses.json (e.g. new
-    YouTube IDs, chunk boundaries) take effect on the next restart without
-    needing to nuke the DB manually. Learner MASTERS edges live on Concepts,
-    not on LectureChunks, so they're preserved.
+    Runs on every startup using batched UNWIND queries for speed.
+    Reads the FULL PALMS MongoDB schema from courses.json.
+    Courses/concepts are MERGE-upserted; lecture chunks are wiped and rebuilt
+    so changes take effect without manual DB cleanup.
+    Learner MASTERS edges live on Concepts, not LectureChunks, so they survive.
     """
     driver = get_driver()
+    if not DATA_FILE.exists():
+        print("[KG] no courses.json — skipping seed")
+        return
+    courses = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    if not courses:
+        print("[KG] courses.json is empty — skipping seed")
+        return
+
     async with driver.session() as s:
-        # Rebuild LectureChunk nodes from scratch — cheap and keeps them in sync
-        # with the current seed file. TEACHES edges are dropped with the nodes.
         await s.run("MATCH (l:LectureChunk) DETACH DELETE l")
 
-        courses = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-        for course in courses:
+        # 1. Batch upsert courses (full schema)
+        course_rows = []
+        for c in courses:
+            course_rows.append({
+                "id": c["course_id"],
+                "title": c.get("title", ""),
+                "description": c.get("description", ""),
+                "difficulty_score": c.get("difficulty_score", 1),
+                "difficulty_label": c.get("difficulty_label", ""),
+                "tags": c.get("tags", []),
+                "thumbnail_url": c.get("thumbnail_url", ""),
+                "course_url": c.get("course_url", ""),
+                "provider": "PALMS",
+                "code": c["course_id"],
+                "domain": (c.get("tags") or ["General"])[0].title() if c.get("tags") else "General",
+            })
+        await s.run(
+            """UNWIND $rows AS r
+               MERGE (c:Course {id: r.id})
+                 SET c.title=r.title, c.description=r.description,
+                     c.difficulty_score=r.difficulty_score,
+                     c.difficulty_label=r.difficulty_label,
+                     c.tags=r.tags, c.thumbnail_url=r.thumbnail_url,
+                     c.course_url=r.course_url, c.provider=r.provider,
+                     c.code=r.code, c.domain=r.domain""",
+            rows=course_rows,
+        )
+
+        # 2. Batch upsert concepts from lecture topic_id/topic_name + CONTAINS edges
+        concept_rows = []
+        seen_concepts: set[str] = set()
+        for c in courses:
+            for lec in c.get("lectures", []):
+                tid = lec.get("topic_id")
+                if tid and tid not in seen_concepts:
+                    seen_concepts.add(tid)
+                    concept_rows.append({
+                        "id": tid,
+                        "name": lec.get("topic_name", tid),
+                        "diff": lec.get("difficulty_score", 1),
+                        "topic": tid,
+                        "cid": c["course_id"],
+                    })
+        if concept_rows:
             await s.run(
-                """MERGE (c:Course {id:$id})
-                     SET c.title=$title, c.provider=$provider, c.code=$code,
-                         c.description=$desc, c.domain=$domain""",
-                id=course["id"], title=course["title"], provider=course["provider"],
-                code=course["code"], desc=course["description"], domain=course["domain"],
+                """UNWIND $rows AS r
+                   MERGE (k:Concept {id: r.id})
+                     SET k.name=r.name, k.difficulty=r.diff, k.topic=r.topic
+                   WITH k, r
+                   MATCH (c:Course {id: r.cid}) MERGE (c)-[:CONTAINS]->(k)""",
+                rows=concept_rows,
             )
-            for con in course["concepts"]:
-                await s.run(
-                    """MERGE (k:Concept {id:$id})
-                         SET k.name=$name, k.difficulty=$diff, k.topic=$topic
-                       WITH k
-                       MATCH (c:Course {id:$cid}) MERGE (c)-[:CONTAINS]->(k)""",
-                    id=con["id"], name=con["name"], diff=con["difficulty"],
-                    topic=con.get("topic", ""), cid=course["id"],
-                )
-                for pre in con.get("prereqs", []):
-                    await s.run(
-                        """MATCH (a:Concept {id:$a}), (b:Concept {id:$b})
-                           MERGE (b)-[:REQUIRES]->(a)""",
-                        a=pre, b=con["id"],
-                    )
-            for lec in course["lectures"]:
-                for ch in lec["chunks"]:
-                    await s.run(
-                        """MERGE (l:LectureChunk {id:$id})
-                             SET l.lecture_id=$lec, l.title=$title,
-                                 l.youtube_id=$yt, l.start=$s, l.end=$e,
-                                 l.summary=$sum, l.duration=$dur""",
-                        id=ch["id"], lec=lec["id"], title=lec["title"],
-                        yt=lec["youtube_id"], s=ch["start"], e=ch["end"],
-                        sum=ch["summary"], dur=lec["duration_sec"],
-                    )
-                    for cid in lec["concept_ids"]:
-                        await s.run(
-                            """MATCH (l:LectureChunk {id:$lid}), (k:Concept {id:$kid})
-                               MERGE (l)-[:TEACHES]->(k)""",
-                            lid=ch["id"], kid=cid,
-                        )
-        print(f"[KG] seeded {len(courses)} courses")
+
+        # 3. Batch upsert prerequisite edges from lecture prerequisite_topic_ids
+        prereq_rows = []
+        seen_prereqs: set[tuple] = set()
+        for c in courses:
+            for lec in c.get("lectures", []):
+                tid = lec.get("topic_id")
+                if not tid:
+                    continue
+                for pre in lec.get("prerequisite_topic_ids", []):
+                    pair = (pre, tid)
+                    if pair not in seen_prereqs:
+                        seen_prereqs.add(pair)
+                        prereq_rows.append({"a": pre, "b": tid})
+        if prereq_rows:
+            await s.run(
+                """UNWIND $rows AS r
+                   MATCH (a:Concept {id: r.a}), (b:Concept {id: r.b})
+                   MERGE (b)-[:REQUIRES]->(a)""",
+                rows=prereq_rows,
+            )
+
+        # 4. Batch create lecture chunks (full schema)
+        chunk_rows = []
+        for c in courses:
+            for lec in c.get("lectures", []):
+                yt = _extract_youtube_id(lec.get("lecture_url", ""))
+                lec_start = lec.get("start_time", 0) or 0
+                lec_end = lec.get("end_time", 0) or 0
+                dur = lec_end - lec_start
+                for ch in lec.get("chunks", []):
+                    chunk_rows.append({
+                        "id": ch["chunk_id"],
+                        "lec": lec["lecture_id"],
+                        "course_id": c["course_id"],
+                        "title": lec.get("title", ""),
+                        "description": lec.get("description", ""),
+                        "yt": yt,
+                        "s": ch.get("start_time", 0),
+                        "e": ch.get("end_time", 0),
+                        "sum": ch.get("summary_text", ""),
+                        "dur": dur,
+                        "diff_score": lec.get("difficulty_score", 1),
+                        "diff_label": lec.get("difficulty_label", ""),
+                    })
+        if chunk_rows:
+            await s.run(
+                """UNWIND $rows AS r
+                   MERGE (l:LectureChunk {id: r.id})
+                     SET l.lecture_id=r.lec, l.course_id=r.course_id,
+                         l.title=r.title, l.description=r.description,
+                         l.youtube_id=r.yt, l.start=r.s, l.end=r.e,
+                         l.summary=r.sum, l.duration=r.dur,
+                         l.difficulty_score=r.diff_score,
+                         l.difficulty_label=r.diff_label""",
+                rows=chunk_rows,
+            )
+
+        # 5. Batch create TEACHES edges (lecture topic_id → chunk)
+        teaches_rows = []
+        for c in courses:
+            for lec in c.get("lectures", []):
+                tid = lec.get("topic_id")
+                if not tid:
+                    continue
+                for ch in lec.get("chunks", []):
+                    teaches_rows.append({"lid": ch["chunk_id"], "kid": tid})
+        if teaches_rows:
+            await s.run(
+                """UNWIND $rows AS r
+                   MATCH (l:LectureChunk {id: r.lid}), (k:Concept {id: r.kid})
+                   MERGE (l)-[:TEACHES]->(k)""",
+                rows=teaches_rows,
+            )
+
+    print(f"[KG] seeded {len(courses)} courses ({len(chunk_rows)} chunks, {len(concept_rows)} concepts)")
 
 
 async def upsert_learner(user_id: str, hobbies: list[str], baseline: str, goal: str) -> None:
@@ -119,6 +223,8 @@ async def get_playlist_for_course(course_id: str) -> list[dict]:
             """MATCH (c:Course {id:$cid})-[:CONTAINS]->(k:Concept)<-[:TEACHES]-(l:LectureChunk)
                RETURN DISTINCT l.lecture_id AS lid, l.title AS title,
                       l.youtube_id AS yt, l.duration AS dur,
+                      l.difficulty_score AS diff_score,
+                      l.difficulty_label AS diff_label,
                       collect(DISTINCT {id:l.id, start:l.start, end:l.end,
                                         summary:l.summary, concept_id:k.id,
                                         concept_name:k.name, difficulty:k.difficulty}) AS chunks""",
@@ -132,9 +238,10 @@ async def get_playlist_for_course(course_id: str) -> list[dict]:
                 "title": rec["title"],
                 "youtube_id": rec["yt"],
                 "duration_sec": rec["dur"],
+                "difficulty_score": rec["diff_score"],
+                "difficulty_label": rec["diff_label"],
                 "chunks": chunks,
             })
-        # Order lectures by first chunk difficulty
         out.sort(key=lambda l: (min((c["difficulty"] for c in l["chunks"]), default=99),
                                 l["title"]))
         return out
@@ -254,35 +361,21 @@ async def kg_snapshot(user_id: str) -> dict:
 
 async def get_supplementary_lectures(user_id: str, course_id: str,
                                      struggle_threshold: float = 0.55) -> list[dict]:
-    """Find supplementary lectures from OTHER courses for concepts the learner is struggling with.
-
-    Implements the PRD's "PAL dynamically adds supplementary videos from the upcoming
-    playlist queue" — cross-course curation.
-
-    A supplementary lecture:
-      - Comes from a course DIFFERENT from the currently enrolled one
-      - Teaches a concept with the SAME topic tag as a concept the user is struggling with
-        in the enrolled course
-      - Is returned in the same shape as normal playlist lectures, plus fields:
-          `supplementary=True`, `source_course_id`, `source_course_title`, `for_concept_name`
-    """
+    """Find supplementary lectures from OTHER courses for concepts the learner is struggling with."""
     driver = get_driver()
     async with driver.session() as s:
         r = await s.run(
             """
-            // 1. Find topics the learner struggles with in their enrolled course
             MATCH (c:Course {id:$cid})-[:CONTAINS]->(k:Concept)
             MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k)
             WHERE m.score < $thr AND k.topic IS NOT NULL AND k.topic <> ''
             WITH collect({topic: k.topic, concept_name: k.name}) AS struggles
 
             UNWIND struggles AS st
-            // 2. Find OTHER courses whose concepts share the same topic
             MATCH (other:Course)-[:CONTAINS]->(k2:Concept {topic: st.topic})
             WHERE other.id <> $cid
             MATCH (l:LectureChunk)-[:TEACHES]->(k2)
             WITH other, k2, st, l
-            // 3. Group chunks by lecture (there are multiple chunks per lecture)
             RETURN other.id AS course_id, other.title AS course_title,
                    k2.id AS concept_id, k2.name AS concept_name,
                    k2.difficulty AS difficulty,
@@ -319,26 +412,20 @@ async def get_supplementary_lectures(user_id: str, course_id: str,
 
 # =========================================================================
 # LEARNING TRACKS + COMPOSED (multi-course) PLAYLIST
-# PRD: "PAL generates a custom video playlist from a library of open-source
-# courses" — a track is a curated group of concepts spanning multiple courses,
-# and the playlist is the union of lectures teaching those concepts.
 # =========================================================================
 
 _TRACKS_FILE = Path(__file__).parent.parent / "data" / "tracks.json"
 
 
 def load_tracks() -> list[dict]:
-    """Read the static tracks catalog from disk."""
+    """Read the tracks catalog from disk (auto-generated by sync_service)."""
     if not _TRACKS_FILE.exists():
         return []
     return json.loads(_TRACKS_FILE.read_text(encoding="utf-8"))
 
 
 async def get_all_tracks_with_metadata() -> list[dict]:
-    """Tracks enriched with the number of courses + lectures each spans.
-
-    Used by the onboarding UI to show what a track actually contains.
-    """
+    """Tracks enriched with the number of courses + lectures each spans."""
     tracks = load_tracks()
     if not tracks:
         return []
@@ -362,13 +449,85 @@ async def get_all_tracks_with_metadata() -> list[dict]:
     return tracks
 
 
-async def get_composed_playlist(user_id: str, target_concept_ids: list[str]) -> list[dict]:
+async def get_prerequisite_graph(concept_ids: list[str]) -> dict[str, list[str]]:
+    """Return {concept_id: [prerequisite_ids]} scoped to the given concept set."""
+    if not concept_ids:
+        return {}
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (k:Concept)-[:REQUIRES]->(pre:Concept)
+               WHERE k.id IN $cids AND pre.id IN $cids
+               RETURN k.id AS concept_id, collect(DISTINCT pre.id) AS prereqs""",
+            cids=concept_ids,
+        )
+        return {rec["concept_id"]: rec["prereqs"] async for rec in r}
+
+
+async def get_prerequisite_closure(concept_ids: list[str]) -> set[str]:
+    """Transitive walk of REQUIRES edges to find all prerequisite concept_ids."""
+    if not concept_ids:
+        return set()
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (k:Concept)-[:REQUIRES*1..5]->(pre:Concept)
+               WHERE k.id IN $cids
+               RETURN DISTINCT pre.id AS prereq_id""",
+            cids=concept_ids,
+        )
+        return {rec["prereq_id"] async for rec in r}
+
+
+def topological_sort_concepts(
+    concept_ids: list[str],
+    prereq_graph: dict[str, list[str]],
+    difficulty_map: dict[str, int],
+) -> list[str]:
+    """Kahn's algorithm with difficulty tie-breaking (easy first)."""
+    cid_set = set(concept_ids)
+    in_degree: dict[str, int] = {cid: 0 for cid in concept_ids}
+    dependents: dict[str, list[str]] = {cid: [] for cid in concept_ids}
+    for cid, prereqs in prereq_graph.items():
+        if cid not in cid_set:
+            continue
+        for pre in prereqs:
+            if pre in cid_set:
+                in_degree[cid] = in_degree.get(cid, 0) + 1
+                dependents.setdefault(pre, []).append(cid)
+
+    ready = sorted(
+        [cid for cid in concept_ids if in_degree.get(cid, 0) == 0],
+        key=lambda c: (difficulty_map.get(c, 99), c),
+    )
+    q = deque(ready)
+    out: list[str] = []
+    while q:
+        node = q.popleft()
+        out.append(node)
+        nexts = []
+        for dep in dependents.get(node, []):
+            in_degree[dep] -= 1
+            if in_degree[dep] == 0:
+                nexts.append(dep)
+        nexts.sort(key=lambda c: (difficulty_map.get(c, 99), c))
+        q.extend(nexts)
+
+    # any concepts not reached (cycles or missing edges) go at the end
+    remaining = [c for c in concept_ids if c not in set(out)]
+    remaining.sort(key=lambda c: (difficulty_map.get(c, 99), c))
+    return out + remaining
+
+
+async def get_composed_playlist(
+    user_id: str,
+    target_concept_ids: list[str],
+    ordered_concept_ids: list[str] | None = None,
+) -> list[dict]:
     """Compose a cross-course playlist from lectures that teach the target concepts.
 
-    Ordering:
-      1. Concept difficulty ASC (easier first)
-      2. Then by lecture title for stability
-    Returns lecture dicts with the same shape as get_playlist_for_course.
+    If ordered_concept_ids is provided, lectures are sorted by the earliest
+    position of their concepts in that ordered list (prerequisite-aware).
     """
     if not target_concept_ids:
         return []
@@ -390,10 +549,22 @@ async def get_composed_playlist(user_id: str, target_concept_ids: list[str]) -> 
             cids=target_concept_ids,
         )
         rows = [dict(rec) async for rec in r]
+
+    concept_pos = {}
+    if ordered_concept_ids:
+        concept_pos = {cid: i for i, cid in enumerate(ordered_concept_ids)}
+
     lectures = []
     for row in rows:
         chunks = sorted(row["chunks"], key=lambda c: c["start"])
         min_diff = min((c["difficulty"] for c in chunks if c["difficulty"]), default=99)
+        if concept_pos:
+            earliest_pos = min(
+                (concept_pos.get(c["concept_id"], 9999) for c in chunks),
+                default=9999,
+            )
+        else:
+            earliest_pos = 0
         lectures.append({
             "lecture_id": row["lid"],
             "title": row["title"],
@@ -402,11 +573,11 @@ async def get_composed_playlist(user_id: str, target_concept_ids: list[str]) -> 
             "source_course_id": row["course_id"],
             "source_course_title": row["course_title"],
             "chunks": chunks,
-            "_min_diff": min_diff,
+            "_sort_key": (earliest_pos, min_diff, row["title"] or ""),
         })
-    lectures.sort(key=lambda l: (l["_min_diff"], l["title"]))
+    lectures.sort(key=lambda l: l["_sort_key"])
     for l in lectures:
-        l.pop("_min_diff", None)
+        l.pop("_sort_key", None)
     return lectures
 
 
