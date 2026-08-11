@@ -204,7 +204,7 @@ export default function Learn() {
       case 'simplify_with_hobby_analogy':
         player.seekTo(ch.start, true);
         player.pauseVideo();
-        showPalAction('PAL: rewound to the start — see the hobby analogy on the right →', 'warn');
+        showPalAction('PAL: Incorrect answer, understand the concept with your hobby analogy', 'warn');
         break;
       case 'insert_prerequisite_video':
         player.seekTo(ch.start, true);
@@ -312,12 +312,6 @@ export default function Learn() {
               />
             </div>
             <h2>{activeLecture.title}</h2>
-            {activeChunk && (
-              <>
-                <span className="concept-tag">{activeChunk.concept_name}</span>
-                <p className="muted">{activeChunk.summary}</p>
-              </>
-            )}
 
             {summary && summary.chunkId === activeChunk?.id && (
               <div className="card" style={{ marginTop: 12 }}>
