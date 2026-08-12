@@ -20,7 +20,6 @@ export default function Learn() {
   const [currentTime, setCurrentTime] = useState(0);
   const [tab, setTab] = useState('notes');
   const [quizChunk, setQuizChunk] = useState(null);
-  const [summary, setSummary] = useState(null);
   const [palAction, setPalAction] = useState(null);  // { text, tone } — shown as toast for a few seconds
   const [triggeredChunks, setTriggeredChunks] = useState(() => new Set());
   const [completedLectures, setCompletedLectures] = useState(() => new Set());
@@ -57,7 +56,16 @@ export default function Learn() {
 
   const refreshPlaylist = async (preserveActive = true) => {
     if (!hasTracks) return;
-    const data = await api('/api/playlist');
+    let data;
+    try {
+      data = await api('/api/playlist');
+    } catch (e) {
+      // Keep whatever playlist is already on screen — don't blank the page
+      // or crash the learning flow over a transient fetch failure.
+      console.error('Playlist refresh failed:', e.message);
+      showPalAction("We couldn't refresh your playlist right now. Your current playlist is still available.", 'warn');
+      return;
+    }
     const mMap = Object.fromEntries((data.mastery || []).map(m => [m.id, m]));
     setMasteryMap(mMap);
     // Merge in supplementary lectures from other courses (PRD: cross-course curation)
@@ -108,7 +116,6 @@ export default function Learn() {
     setActiveLecture(lec);
     setActiveChunk(lec.chunks[0]);
     setTriggeredChunks(new Set());
-    setSummary(null);
   };
 
   const jumpToChunk = (ch) => {
@@ -140,16 +147,33 @@ export default function Learn() {
     showPalAction(msg, addedSupp > 0 ? 'warn' : 'info');
   };
 
+  // Merge Recommendation-Engine results from a quiz submission into the
+  // sidebar list, reusing the exact same shape/rendering `refreshPlaylist`
+  // already uses for playlist-level supplementary lectures (lines below,
+  // `lec.supplementary` branch) — no separate UI needed.
+  const mergeRecommendations = (recs) => {
+    if (!recs || !recs.length) return;
+    setLectures(prev => {
+      const existingIds = new Set(prev.map(l => l.lecture_id));
+      const fresh = recs.filter(r => !existingIds.has(r.lecture_id))
+        .map(r => ({ ...r, supplementary: true }));
+      return fresh.length ? [...prev, ...fresh] : prev;
+    });
+  };
+
+  // Remove sidebar cards for remediation the backend just retired (learner
+  // mastered the concept it was recommended for) — see
+  // AdaptiveLearningOrchestrator's Mastered handling.
+  const retireLectures = (retiredIds) => {
+    if (!retiredIds || !retiredIds.length) return;
+    setLectures(prev => prev.filter(l => !retiredIds.includes(l.lecture_id)));
+  };
+
   const onQuizClose = async (result) => {
     const ch = quizChunk;
     setQuizChunk(null);
-    // Fetch the hobby-flavoured summary right after quiz — implements the "remediation" step
-    if (ch) {
-      try {
-        const s = await api(`/api/quiz/summary/${ch.id}`);
-        setSummary({ chunkId: ch.id, ...s });
-      } catch {}
-    }
+    mergeRecommendations(result?.recommendations);
+    retireLectures(result?.retired_lecture_ids);
 
     // Lecture-complete check: quizzes fire at every chunk boundary except the final
     // chunk (which has no boundary after it). So if the just-answered chunk was the
@@ -176,6 +200,12 @@ export default function Learn() {
     // If the answer was correct, never rewind — mastery may still be in the Struggling
     // band while it recovers, but rewinding after a correct answer is pedagogically wrong.
     // The only "positive" action we honour on correct is skip-forward when mastered.
+    //
+    // All toast text below is deliberately plain, pedagogical language — it
+    // must never expose internal Process KG state names (Frustrated/
+    // Struggling/OnTrack/Confident/Mastered), rule/action identifiers,
+    // thresholds, or recommendation-engine terminology to the learner. The
+    // `action` string itself is only ever used as an internal switch key.
     if (wasCorrect) {
       if (action === 'skip_next_similar_chunk') {
         const chunks = activeLecture?.chunks || [];
@@ -186,34 +216,47 @@ export default function Learn() {
           player.seekTo(skipTarget.end, true);
           setTriggeredChunks(prev => new Set(prev).add(skipTarget.id));
           player.playVideo();
-          showPalAction('PAL: you\'ve mastered this — skipped past the redundant section.', 'ok');
+          showPalAction("You've mastered this concept. Let's move ahead.", 'ok');
           return;
         }
       }
       player.playVideo();
-      if (action === 'raise_question_difficulty') {
-        showPalAction('Nice one — next quiz will step up a notch.', 'ok');
+      if (action === 'offer_challenge_content') {
+        // Question difficulty is decided independently by the RL controller
+        // (see result.next_difficulty) — this message never mentions
+        // enrichment/challenge content, since none is added here.
+        showPalAction("Good progress. Let's continue.", 'ok');
       } else {
-        showPalAction('Correct — continuing.', 'ok');
+        showPalAction("You're on the right track. Let's continue.", 'ok');
       }
       return;
     }
 
-    // Wrong answer path — apply the Process KG remediation action.
+    // Wrong answer path — apply the Process KG remediation action. The
+    // normal explanation and (for wrong answers) the analogy were already
+    // shown in QuizOverlay's result panel, independent of this switch —
+    // these toasts only describe the pedagogical action being taken next.
     switch (action) {
       case 'simplify_with_hobby_analogy':
         player.seekTo(ch.start, true);
         player.pauseVideo();
-        showPalAction('PAL: Incorrect answer, understand the concept with your hobby analogy', 'warn');
+        showPalAction("Let's look at this another way.", 'warn');
         break;
       case 'insert_prerequisite_video':
         player.seekTo(ch.start, true);
         player.playVideo();
-        showPalAction('PAL: reviewing this section — replaying from the start.', 'warn');
+        showPalAction(
+          // Only mention added content when something was actually added —
+          // never imply a video was added if it wasn't.
+          result?.recommendations?.length
+            ? `Let's review this concept — added ${result.recommendations.length} helpful lecture${result.recommendations.length > 1 ? 's' : ''} to your sidebar.`
+            : "Let's review this concept before moving on.",
+          'warn'
+        );
         break;
-      case 'raise_question_difficulty':
+      case 'offer_challenge_content':
         player.playVideo();
-        showPalAction('PAL: you\'re confident — next quiz will be harder.', 'ok');
+        showPalAction("Good progress. Let's continue.", 'ok');
         break;
       case 'skip_next_similar_chunk': {
         // Find the next chunk in the same lecture that teaches the same concept
@@ -225,11 +268,13 @@ export default function Learn() {
           player.seekTo(skipTarget.end, true);  // jump past the redundant chunk
           setTriggeredChunks(prev => new Set(prev).add(skipTarget.id));  // don't quiz it either
           player.playVideo();
-          showPalAction('PAL: you\'ve mastered this — skipped past the redundant section.', 'ok');
         } else {
           player.playVideo();
-          showPalAction('PAL: you\'ve mastered this concept — carrying on.', 'ok');
         }
+        // Same message either way — from the learner's perspective, both
+        // cases simply mean "you've got this, moving on." Nothing was
+        // deleted; at most, playback moved past an already-mastered section.
+        showPalAction("You've mastered this concept. Let's move ahead.", 'ok');
         break;
       }
       case 'continue_normal':
@@ -254,7 +299,9 @@ export default function Learn() {
           const score = cid ? masteryMap[cid]?.score : undefined;
           let badge = null, dim = false;
           if (lec.supplementary) {
-            badge = <span className="lec-badge suppl">📚 Bridge lecture</span>;
+            badge = lec.challenge
+              ? <span className="lec-badge suppl">🚀 Enrichment</span>
+              : <span className="lec-badge suppl">📚 Bridge lecture</span>;
           } else if (score !== undefined) {
             if (score < 0.55) badge = <span className="lec-badge focus">🎯 Focus</span>;
             else if (score >= 0.85) { badge = <span className="lec-badge mastered">✓ Mastered</span>; dim = true; }
@@ -276,7 +323,9 @@ export default function Learn() {
             </div>
             {lec.supplementary && (
               <div className="suppl-meta" onClick={() => pickLecture(lec)}>
-                PAL recommended this to strengthen <b>{lec.for_concept_name}</b>
+                {lec.challenge
+                  ? <>PAL found this to go deeper after <b>{lec.for_concept_name}</b></>
+                  : <>PAL recommended this to strengthen <b>{lec.for_concept_name}</b></>}
                 {typeof lec.similarity === 'number' && (
                   <span className="suppl-sim"> · {Math.round(lec.similarity * 100)}% match</span>
                 )}
@@ -312,19 +361,6 @@ export default function Learn() {
               />
             </div>
             <h2>{activeLecture.title}</h2>
-
-            {summary && summary.chunkId === activeChunk?.id && (
-              <div className="card" style={{ marginTop: 12 }}>
-                <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>PAL · post-chunk summary</div>
-                <p style={{ marginTop: 0 }}>{summary.summary}</p>
-                {summary.analogy && (
-                  <p style={{ borderLeft: '3px solid var(--primary)', paddingLeft: 10, color: 'var(--muted)' }}>
-                    <b>Analogy:</b> {summary.analogy}
-                  </p>
-                )}
-                <p style={{ marginBottom: 0 }}><b>Next focus:</b> {summary.next_focus}</p>
-              </div>
-            )}
           </>
         )}
       </div>

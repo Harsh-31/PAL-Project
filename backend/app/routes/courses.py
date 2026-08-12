@@ -53,6 +53,9 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
 
     # Goal-based semantic matching across ALL concepts in the KG.
     # Track concepts get a boost but don't limit the search.
+    # target_concept_ids backs the ONGOING, uncapped /api/playlist view — it
+    # is intentionally NOT capped to 10, only tightened (top_k=20/floor=0.65
+    # with a top-3 fallback, see recommender.match_goal_to_concepts).
     target_concept_ids = await recommender.match_goal_to_concepts(
         goal_text=payload.goal,
         baseline=payload.baseline,
@@ -69,6 +72,15 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
             detail="Could not match your goal to any content. "
                    "Try a more specific goal or select learning tracks.",
         )
+
+    # The initial, focused STARTER playlist — capped at
+    # recommender.MAX_ONBOARDING_LECTURES (10), relevance-ranked. This is a
+    # separate, smaller view from target_concept_ids above; later adaptive
+    # recommendations (remedial/challenge) add more over time.
+    starter = await recommender.build_onboarding_starter_playlist(
+        user_id=user["id"], goal_text=payload.goal,
+        track_concept_ids=track_concept_ids or None,
+    )
 
     await kg_service.upsert_learner(
         user_id=user["id"],
@@ -92,8 +104,13 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
         },
          "$unset": {"current_course_id": ""}},
     )
-    return {"ok": True, "track_ids": payload.track_ids,
-            "target_concept_ids": target_concept_ids}
+    return {
+        "ok": True,
+        "track_ids": payload.track_ids,
+        "target_concept_ids": target_concept_ids,
+        "starter_playlist": starter["lectures"],
+        "starter_playlist_fallback_activated": starter["fallback_activated"],
+    }
 
 
 @router.get("/playlist")

@@ -59,7 +59,13 @@ async def _seed_process_kg() -> None:
         # (state, rule, mastery_lt, action)
         ("Frustrated", "OfferSimplerAnalogy", 0.4, "simplify_with_hobby_analogy"),
         ("Struggling", "AddRemedialContent", 0.55, "insert_prerequisite_video"),
-        ("Confident", "AdvanceDifficulty", 0.85, "raise_question_difficulty"),
+        # NOTE: action reinterpreted from "raise_question_difficulty" — question
+        # difficulty is now (and was already, in practice) the Hybrid RL
+        # controller's sole authority. This rule stays named AdvanceDifficulty
+        # (backward compatible — nothing keys off the action string persisting
+        # across restarts) but now maps to a content-side enrichment action so
+        # it can never conflict with the RL difficulty decision.
+        ("Confident", "AdvanceDifficulty", 0.85, "offer_challenge_content"),
         ("Mastered", "SkipRedundant", 0.95, "skip_next_similar_chunk"),
         ("OnTrack", "ContinueBaseline", 0.7, "continue_normal"),
     ]

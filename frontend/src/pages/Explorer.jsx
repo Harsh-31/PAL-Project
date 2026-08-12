@@ -58,7 +58,7 @@ export default function Explorer() {
               ['Frustrated', 'OfferSimplerAnalogy', '0.40', 'simplify_with_hobby_analogy'],
               ['Struggling', 'AddRemedialContent', '0.55', 'insert_prerequisite_video'],
               ['OnTrack',    'ContinueBaseline',   '0.70', 'continue_normal'],
-              ['Confident',  'AdvanceDifficulty',  '0.85', 'raise_question_difficulty'],
+              ['Confident',  'AdvanceDifficulty',  '0.85', 'offer_challenge_content'],
               ['Mastered',   'SkipRedundant',      '0.95', 'skip_next_similar_chunk'],
             ].map(row => (
               <tr key={row[1]} style={{ borderTop: '1px solid var(--border)' }}>

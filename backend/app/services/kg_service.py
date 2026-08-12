@@ -307,6 +307,32 @@ async def get_mastery(user_id: str, concept_id: str) -> float:
         return rec["score"] if rec else 0.5
 
 
+async def swap_intervention_state(user_id: str, concept_id: str, new_state: str) -> str | None:
+    """Atomically read the learner's previously-recorded Process-KG cognitive
+    state for this (learner, concept) and overwrite it with `new_state`.
+    Returns the previous state, or None if this concept has never been
+    assessed for this learner before.
+
+    This is what lets the orchestrator tell "learner just entered Struggling"
+    apart from "learner is still Struggling" across separate HTTP requests —
+    the value lives on the same MASTERS edge record_mastery already writes,
+    not in a temporary Python variable or a new collection/graph.
+    """
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (u:Learner {id:$uid}), (k:Concept {id:$cid})
+               MERGE (u)-[m:MASTERS]->(k)
+                 ON CREATE SET m.score = 0.5, m.attempts = 0
+               WITH m, m.last_kg_state AS previous_state
+               SET m.last_kg_state = $new_state
+               RETURN previous_state""",
+            uid=user_id, cid=concept_id, new_state=new_state,
+        )
+        rec = await r.single()
+        return rec["previous_state"] if rec else None
+
+
 async def get_all_mastery(user_id: str, course_id: str) -> list[dict]:
     driver = get_driver()
     async with driver.session() as s:

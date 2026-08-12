@@ -1,0 +1,3660 @@
+{
+  "profile": "struggling",
+  "initial_policy": {
+    "EASY": 0.4266,
+    "MEDIUM": 0.4754,
+    "HARD": 0.098
+  },
+  "final_state": {
+    "skill": 0.3565,
+    "recent_accuracy": 0.4,
+    "confidence": 0.6562,
+    "learning_velocity": 0.0,
+    "streak_momentum": 0.5828
+  },
+  "final_q_table": {
+    "sk1-ac1-rt1-st1-vl1-cf0": {
+      "EASY": 0.17732269106297452
+    },
+    "sk1-ac2-rt1-st2-vl1-cf0": {
+      "EASY": -0.0525
+    },
+    "sk1-ac1-rt1-st0-vl0-cf0": {
+      "MEDIUM": -0.04212049806149817
+    },
+    "sk1-ac0-rt2-st0-vl0-cf0": {
+      "MEDIUM": -0.06778782373868585
+    },
+    "sk1-ac0-rt0-st0-vl0-cf0": {
+      "MEDIUM": 0.1902174988081143
+    },
+    "sk1-ac1-rt1-st2-vl0-cf0": {
+      "EASY": -0.05850804575656657
+    },
+    "sk1-ac0-rt1-st0-vl0-cf1": {
+      "MEDIUM": -0.05169743230683809,
+      "EASY": -0.06519418316024078
+    },
+    "sk0-ac0-rt0-st0-vl0-cf1": {
+      "EASY": 0.17102252566549492
+    },
+    "sk0-ac1-rt1-st2-vl0-cf1": {
+      "EASY": -0.061795001866826314,
+      "HARD": -0.06563437210379643,
+      "MEDIUM": -0.10468287943517975
+    },
+    "sk0-ac0-rt0-st0-vl0-cf2": {
+      "EASY": -0.09865725837618033,
+      "HARD": -0.11306278454343902,
+      "MEDIUM": 0.11161800725918927
+    },
+    "sk0-ac0-rt1-st0-vl1-cf2": {
+      "HARD": -0.15257341735644198,
+      "EASY": -0.13034192460781258,
+      "MEDIUM": -0.16551431398523256
+    },
+    "sk0-ac0-rt0-st0-vl1-cf2": {
+      "EASY": 0.1904139892022157
+    },
+    "sk0-ac0-rt2-st2-vl0-cf2": {
+      "EASY": -0.053342298215348895,
+      "HARD": -0.04430068982774217
+    },
+    "sk0-ac0-rt2-st0-vl1-cf2": {
+      "EASY": -0.04906910148861453,
+      "HARD": -0.0434749655355276,
+      "MEDIUM": 0.0911471110947527
+    },
+    "sk0-ac0-rt1-st0-vl0-cf2": {
+      "MEDIUM": -0.03416553652049879,
+      "EASY": 0.4045856917996281
+    },
+    "sk0-ac0-rt2-st0-vl0-cf2": {
+      "EASY": 0.5862360279803001
+    },
+    "sk0-ac0-rt2-st0-vl2-cf2": {
+      "EASY": -0.06361825205091584,
+      "HARD": -0.03805623824399897
+    },
+    "sk0-ac0-rt0-st0-vl2-cf2": {
+      "EASY": 0.07104360792522083
+    },
+    "sk0-ac0-rt2-st2-vl2-cf2": {
+      "EASY": -0.049129888266520164
+    },
+    "sk0-ac1-rt1-st2-vl1-cf1": {
+      "EASY": -0.06638624388141211,
+      "HARD": 0.2430097185923818
+    },
+    "sk0-ac0-rt1-st2-vl0-cf2": {
+      "EASY": 0.17580169660498604,
+      "MEDIUM": 0.2735058652083997
+    },
+    "sk0-ac1-rt0-st0-vl1-cf1": {
+      "EASY": 0.19536621352507672
+    },
+    "sk0-ac1-rt2-st2-vl2-cf1": {
+      "EASY": -0.10502985051267792,
+      "HARD": -0.06055488335168831
+    },
+    "sk0-ac1-rt0-st0-vl2-cf1": {
+      "EASY": 0.15450458408132292,
+      "HARD": -0.05091415737119553,
+      "MEDIUM": 0.11627211787418391
+    },
+    "sk0-ac1-rt2-st0-vl2-cf1": {
+      "EASY": -0.04091417160730465,
+      "HARD": -0.06227351534355507,
+      "MEDIUM": 0.09877054504835239
+    },
+    "sk0-ac0-rt2-st0-vl2-cf1": {
+      "EASY": -0.05011845788494402
+    },
+    "sk0-ac0-rt1-st0-vl2-cf2": {
+      "EASY": -0.01965055266733953,
+      "HARD": -0.07514814040891941
+    },
+    "sk0-ac1-rt0-st2-vl0-cf1": {
+      "EASY": 0.22972244799092204
+    },
+    "sk0-ac2-rt0-st2-vl2-cf2": {
+      "EASY": -0.07782138797033589
+    },
+    "sk0-ac2-rt1-st0-vl2-cf2": {
+      "EASY": -0.04347768006395895
+    },
+    "sk0-ac1-rt2-st0-vl0-cf1": {
+      "EASY": 0.32401050685737764
+    },
+    "sk0-ac1-rt1-st2-vl2-cf1": {
+      "EASY": 0.16055659472053863,
+      "MEDIUM": 0.12148901956887954
+    },
+    "sk0-ac2-rt1-st2-vl2-cf2": {
+      "EASY": -0.008909256788945568
+    },
+    "sk0-ac1-rt1-st0-vl1-cf1": {
+      "EASY": -0.044125382068745306,
+      "HARD": -0.034118220747898616
+    },
+    "sk0-ac1-rt2-st0-vl1-cf1": {
+      "EASY": 0.18704741546571355
+    },
+    "sk0-ac1-rt0-st2-vl2-cf1": {
+      "EASY": 0.35475824545491375
+    },
+    "sk0-ac1-rt1-st0-vl2-cf1": {
+      "EASY": -0.04490540156954091,
+      "HARD": -0.03927183045732357
+    },
+    "sk0-ac0-rt0-st2-vl0-cf2": {
+      "MEDIUM": -0.018283466135785856
+    },
+    "sk0-ac1-rt1-st0-vl0-cf1": {
+      "EASY": 0.1778622788839445
+    }
+  },
+  "final_epsilon": 0.05,
+  "log": [
+    {
+      "step": 0,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 4.41,
+      "skill": 0.5134,
+      "recent_accuracy": 1.0,
+      "confidence": 0.15,
+      "blend_weight": 0.15,
+      "p_stat": {
+        "EASY": 0.4266,
+        "MEDIUM": 0.4754,
+        "HARD": 0.098
+      },
+      "p_rl": {
+        "EASY": 0.8333,
+        "MEDIUM": 0.0833,
+        "HARD": 0.0833
+      },
+      "hybrid_policy": {
+        "EASY": 0.4876,
+        "MEDIUM": 0.4166,
+        "HARD": 0.0958
+      },
+      "reward": 1.1822,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.15,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.1821512737531634
+      },
+      "q_before": 0.0,
+      "q_after": 0.1773
+    },
+    {
+      "step": 1,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 12.91,
+      "skill": 0.4764,
+      "recent_accuracy": 0.5,
+      "confidence": 0.2018,
+      "blend_weight": 0.1552,
+      "p_stat": {
+        "EASY": 0.5855,
+        "MEDIUM": 0.3074,
+        "HARD": 0.1071
+      },
+      "p_rl": {
+        "EASY": 0.8383,
+        "MEDIUM": 0.0808,
+        "HARD": 0.0808
+      },
+      "hybrid_policy": {
+        "EASY": 0.6248,
+        "MEDIUM": 0.2722,
+        "HARD": 0.103
+      },
+      "reward": -0.35,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.15,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.35
+      },
+      "q_before": 0.0,
+      "q_after": -0.0525
+    },
+    {
+      "step": 2,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 4.42,
+      "skill": 0.453,
+      "recent_accuracy": 0.3333,
+      "confidence": 0.2728,
+      "blend_weight": 0.1641,
+      "p_stat": {
+        "EASY": 0.6006,
+        "MEDIUM": 0.3037,
+        "HARD": 0.0957
+      },
+      "p_rl": {
+        "EASY": 0.8432,
+        "MEDIUM": 0.0784,
+        "HARD": 0.0784
+      },
+      "hybrid_policy": {
+        "EASY": 0.6404,
+        "MEDIUM": 0.2667,
+        "HARD": 0.0929
+      },
+      "reward": -0.2808,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.2191966795900122,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2808033204099878
+      },
+      "q_before": 0.0,
+      "q_after": -0.0421
+    },
+    {
+      "step": 3,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 13.88,
+      "skill": 0.4314,
+      "recent_accuracy": 0.25,
+      "confidence": 0.3738,
+      "blend_weight": 0.1786,
+      "p_stat": {
+        "EASY": 0.4469,
+        "MEDIUM": 0.4692,
+        "HARD": 0.0839
+      },
+      "p_rl": {
+        "EASY": 0.8479,
+        "MEDIUM": 0.0761,
+        "HARD": 0.0761
+      },
+      "hybrid_policy": {
+        "EASY": 0.5186,
+        "MEDIUM": 0.399,
+        "HARD": 0.0825
+      },
+      "reward": -0.4519,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.04808117507542767,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.45191882492457236
+      },
+      "q_before": 0.0,
+      "q_after": -0.0678
+    },
+    {
+      "step": 4,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 9.75,
+      "skill": 0.4605,
+      "recent_accuracy": 0.4,
+      "confidence": 0.3729,
+      "blend_weight": 0.2023,
+      "p_stat": {
+        "EASY": 0.4564,
+        "MEDIUM": 0.4657,
+        "HARD": 0.0779
+      },
+      "p_rl": {
+        "EASY": 0.8525,
+        "MEDIUM": 0.0738,
+        "HARD": 0.0738
+      },
+      "hybrid_policy": {
+        "EASY": 0.5366,
+        "MEDIUM": 0.3864,
+        "HARD": 0.077
+      },
+      "reward": 1.2681,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.13596538496759852,
+        "r_prog": 0.1,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2681166587207622
+      },
+      "q_before": 0.0,
+      "q_after": 0.1902
+    },
+    {
+      "step": 5,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 11.28,
+      "skill": 0.426,
+      "recent_accuracy": 0.2,
+      "confidence": 0.5443,
+      "blend_weight": 0.2153,
+      "p_stat": {
+        "EASY": 0.5447,
+        "MEDIUM": 0.3497,
+        "HARD": 0.1056
+      },
+      "p_rl": {
+        "EASY": 0.8569,
+        "MEDIUM": 0.0716,
+        "HARD": 0.0716
+      },
+      "hybrid_policy": {
+        "EASY": 0.6119,
+        "MEDIUM": 0.2899,
+        "HARD": 0.0983
+      },
+      "reward": -0.3901,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1099463616228895,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3900536383771105
+      },
+      "q_before": 0.0,
+      "q_after": -0.0585
+    },
+    {
+      "step": 6,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 9.17,
+      "skill": 0.4064,
+      "recent_accuracy": 0.2,
+      "confidence": 0.594,
+      "blend_weight": 0.2643,
+      "p_stat": {
+        "EASY": 0.6222,
+        "MEDIUM": 0.2962,
+        "HARD": 0.0816
+      },
+      "p_rl": {
+        "EASY": 0.8612,
+        "MEDIUM": 0.0694,
+        "HARD": 0.0694
+      },
+      "hybrid_policy": {
+        "EASY": 0.6853,
+        "MEDIUM": 0.2363,
+        "HARD": 0.0784
+      },
+      "reward": -0.3446,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.15535045128774608,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.34464954871225395
+      },
+      "q_before": 0.0,
+      "q_after": -0.0517
+    },
+    {
+      "step": 7,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 13.87,
+      "skill": 0.3754,
+      "recent_accuracy": 0.2,
+      "confidence": 0.6737,
+      "blend_weight": 0.2955,
+      "p_stat": {
+        "EASY": 0.4675,
+        "MEDIUM": 0.4612,
+        "HARD": 0.0713
+      },
+      "p_rl": {
+        "EASY": 0.8653,
+        "MEDIUM": 0.0673,
+        "HARD": 0.0673
+      },
+      "hybrid_policy": {
+        "EASY": 0.5851,
+        "MEDIUM": 0.3448,
+        "HARD": 0.0701
+      },
+      "reward": -0.4346,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.06537211226506148,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.43462788773493854
+      },
+      "q_before": 0.0,
+      "q_after": -0.0652
+    },
+    {
+      "step": 8,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 12.03,
+      "skill": 0.3934,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6321,
+      "blend_weight": 0.3386,
+      "p_stat": {
+        "EASY": 0.6452,
+        "MEDIUM": 0.2859,
+        "HARD": 0.0689
+      },
+      "p_rl": {
+        "EASY": 0.8694,
+        "MEDIUM": 0.0653,
+        "HARD": 0.0653
+      },
+      "hybrid_policy": {
+        "EASY": 0.7211,
+        "MEDIUM": 0.2112,
+        "HARD": 0.0677
+      },
+      "reward": 1.1402,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.10799889735013608,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.1401501711032995
+      },
+      "q_before": 0.0,
+      "q_after": 0.171
+    },
+    {
+      "step": 9,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 13.22,
+      "skill": 0.3634,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7804,
+      "blend_weight": 0.3491,
+      "p_stat": {
+        "EASY": 0.6369,
+        "MEDIUM": 0.2899,
+        "HARD": 0.0733
+      },
+      "p_rl": {
+        "EASY": 0.8733,
+        "MEDIUM": 0.0634,
+        "HARD": 0.0634
+      },
+      "hybrid_policy": {
+        "EASY": 0.7194,
+        "MEDIUM": 0.2108,
+        "HARD": 0.0698
+      },
+      "reward": -0.412,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.08803332088782458,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.41196667911217544
+      },
+      "q_before": 0.0,
+      "q_after": -0.0618
+    },
+    {
+      "step": 10,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 13.56,
+      "skill": 0.3357,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7802,
+      "blend_weight": 0.4231,
+      "p_stat": {
+        "EASY": 0.6383,
+        "MEDIUM": 0.2932,
+        "HARD": 0.0685
+      },
+      "p_rl": {
+        "EASY": 0.8771,
+        "MEDIUM": 0.0615,
+        "HARD": 0.0615
+      },
+      "hybrid_policy": {
+        "EASY": 0.7393,
+        "MEDIUM": 0.1951,
+        "HARD": 0.0655
+      },
+      "reward": -0.4135,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.08653731844928542,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4134626815507146
+      },
+      "q_before": 0.0,
+      "q_after": -0.062
+    },
+    {
+      "step": 11,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 10.24,
+      "skill": 0.3329,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7869,
+      "blend_weight": 0.4504,
+      "p_stat": {
+        "EASY": 0.6527,
+        "MEDIUM": 0.2852,
+        "HARD": 0.062
+      },
+      "p_rl": {
+        "EASY": 0.0596,
+        "MEDIUM": 0.0596,
+        "HARD": 0.8808
+      },
+      "hybrid_policy": {
+        "EASY": 0.3856,
+        "MEDIUM": 0.1836,
+        "HARD": 0.4308
+      },
+      "reward": -0.3381,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.16187298583436863,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3381270141656314
+      },
+      "q_before": 0.0,
+      "q_after": -0.0507
+    },
+    {
+      "step": 12,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 16.86,
+      "skill": 0.3301,
+      "recent_accuracy": 0.2,
+      "confidence": 0.775,
+      "blend_weight": 0.4805,
+      "p_stat": {
+        "EASY": 0.4685,
+        "MEDIUM": 0.2347,
+        "HARD": 0.2968
+      },
+      "p_rl": {
+        "EASY": 0.8844,
+        "MEDIUM": 0.0578,
+        "HARD": 0.0578
+      },
+      "hybrid_policy": {
+        "EASY": 0.6683,
+        "MEDIUM": 0.1497,
+        "HARD": 0.182
+      },
+      "reward": -0.4612,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.03880935529423944,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.46119064470576054
+      },
+      "q_before": 0.0,
+      "q_after": -0.0692
+    },
+    {
+      "step": 13,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 6.55,
+      "skill": 0.3493,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7505,
+      "blend_weight": 0.5026,
+      "p_stat": {
+        "EASY": 0.4698,
+        "MEDIUM": 0.2338,
+        "HARD": 0.2964
+      },
+      "p_rl": {
+        "EASY": 0.8878,
+        "MEDIUM": 0.0561,
+        "HARD": 0.0561
+      },
+      "hybrid_policy": {
+        "EASY": 0.6799,
+        "MEDIUM": 0.1445,
+        "HARD": 0.1756
+      },
+      "reward": 1.2694,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.23727532092827455,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.269426594681438
+      },
+      "q_before": 0.0,
+      "q_after": 0.1904
+    },
+    {
+      "step": 14,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 11.13,
+      "skill": 0.3228,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7491,
+      "blend_weight": 0.5177,
+      "p_stat": {
+        "EASY": 0.6577,
+        "MEDIUM": 0.2794,
+        "HARD": 0.0629
+      },
+      "p_rl": {
+        "EASY": 0.8912,
+        "MEDIUM": 0.0544,
+        "HARD": 0.0544
+      },
+      "hybrid_policy": {
+        "EASY": 0.7786,
+        "MEDIUM": 0.1629,
+        "HARD": 0.0585
+      },
+      "reward": -0.3556,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.14438467856434065,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3556153214356593
+      },
+      "q_before": 0.0,
+      "q_after": -0.0533
+    },
+    {
+      "step": 15,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 11.12,
+      "skill": 0.2987,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7489,
+      "blend_weight": 0.5433,
+      "p_stat": {
+        "EASY": 0.6708,
+        "MEDIUM": 0.272,
+        "HARD": 0.0572
+      },
+      "p_rl": {
+        "EASY": 0.8945,
+        "MEDIUM": 0.0528,
+        "HARD": 0.0528
+      },
+      "hybrid_policy": {
+        "EASY": 0.7923,
+        "MEDIUM": 0.1529,
+        "HARD": 0.0548
+      },
+      "reward": -0.3551,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.14491041592246587,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3550895840775341
+      },
+      "q_before": 0.0,
+      "q_after": -0.0533
+    },
+    {
+      "step": 16,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 8.41,
+      "skill": 0.2767,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7436,
+      "blend_weight": 0.5694,
+      "p_stat": {
+        "EASY": 0.6729,
+        "MEDIUM": 0.2731,
+        "HARD": 0.054
+      },
+      "p_rl": {
+        "EASY": 0.0512,
+        "MEDIUM": 0.8976,
+        "HARD": 0.0512
+      },
+      "hybrid_policy": {
+        "EASY": 0.3189,
+        "MEDIUM": 0.6287,
+        "HARD": 0.0524
+      },
+      "reward": -0.2967,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.20327825792128285,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.29672174207871715
+      },
+      "q_before": -0.0533,
+      "q_after": -0.0898
+    },
+    {
+      "step": 17,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 9.74,
+      "skill": 0.2568,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7709,
+      "blend_weight": 0.5924,
+      "p_stat": {
+        "EASY": 0.6853,
+        "MEDIUM": 0.2652,
+        "HARD": 0.0495
+      },
+      "p_rl": {
+        "EASY": 0.9007,
+        "MEDIUM": 0.0497,
+        "HARD": 0.0497
+      },
+      "hybrid_policy": {
+        "EASY": 0.8129,
+        "MEDIUM": 0.1375,
+        "HARD": 0.0496
+      },
+      "reward": -0.3271,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.17287265674256977,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3271273432574302
+      },
+      "q_before": 0.0,
+      "q_after": -0.0491
+    },
+    {
+      "step": 18,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 11.13,
+      "skill": 0.2387,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9789,
+      "blend_weight": 0.6357,
+      "p_stat": {
+        "EASY": 0.6969,
+        "MEDIUM": 0.2575,
+        "HARD": 0.0456
+      },
+      "p_rl": {
+        "EASY": 0.0482,
+        "MEDIUM": 0.9037,
+        "HARD": 0.0482
+      },
+      "hybrid_policy": {
+        "EASY": 0.2845,
+        "MEDIUM": 0.6682,
+        "HARD": 0.0472
+      },
+      "reward": -0.3602,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.139819541210844,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.360180458789156
+      },
+      "q_before": -0.0898,
+      "q_after": -0.1303
+    },
+    {
+      "step": 19,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 15.12,
+      "skill": 0.2322,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9595,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.7077,
+        "MEDIUM": 0.25,
+        "HARD": 0.0422
+      },
+      "p_rl": {
+        "EASY": 0.0467,
+        "MEDIUM": 0.9066,
+        "HARD": 0.0467
+      },
+      "hybrid_policy": {
+        "EASY": 0.1789,
+        "MEDIUM": 0.7753,
+        "HARD": 0.0458
+      },
+      "reward": -0.4409,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.05906533331042349,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4409346666895765
+      },
+      "q_before": 0.0,
+      "q_after": -0.0661
+    },
+    {
+      "step": 20,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 14.32,
+      "skill": 0.226,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9559,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5485,
+        "MEDIUM": 0.4163,
+        "HARD": 0.0352
+      },
+      "p_rl": {
+        "EASY": 0.0453,
+        "MEDIUM": 0.9094,
+        "HARD": 0.0453
+      },
+      "hybrid_policy": {
+        "EASY": 0.146,
+        "MEDIUM": 0.8108,
+        "HARD": 0.0433
+      },
+      "reward": -0.4226,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.07740667341080926,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.42259332658919074
+      },
+      "q_before": 0.0,
+      "q_after": -0.0634
+    },
+    {
+      "step": 21,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 14.38,
+      "skill": 0.2251,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9674,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5515,
+        "MEDIUM": 0.4143,
+        "HARD": 0.0341
+      },
+      "p_rl": {
+        "EASY": 0.044,
+        "MEDIUM": 0.044,
+        "HARD": 0.9121
+      },
+      "hybrid_policy": {
+        "EASY": 0.1455,
+        "MEDIUM": 0.118,
+        "HARD": 0.7365
+      },
+      "reward": -0.4207,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.0793032119968868,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4206967880031132
+      },
+      "q_before": -0.0507,
+      "q_after": -0.1131
+    },
+    {
+      "step": 22,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 9.33,
+      "skill": 0.2101,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9652,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5202,
+        "MEDIUM": 0.1969,
+        "HARD": 0.283
+      },
+      "p_rl": {
+        "EASY": 0.9147,
+        "MEDIUM": 0.0426,
+        "HARD": 0.0426
+      },
+      "hybrid_policy": {
+        "EASY": 0.8358,
+        "MEDIUM": 0.0735,
+        "HARD": 0.0907
+      },
+      "reward": -0.3063,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.19372822347690513,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3062717765230949
+      },
+      "q_before": -0.062,
+      "q_after": -0.0987
+    },
+    {
+      "step": 23,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 3.96,
+      "skill": 0.2051,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9253,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.7329,
+        "MEDIUM": 0.2311,
+        "HARD": 0.0361
+      },
+      "p_rl": {
+        "EASY": 0.9173,
+        "MEDIUM": 0.0414,
+        "HARD": 0.0414
+      },
+      "hybrid_policy": {
+        "EASY": 0.8804,
+        "MEDIUM": 0.0793,
+        "HARD": 0.0403
+      },
+      "reward": -0.2278,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.272229756530008,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.22777024346999197
+      },
+      "q_before": 0.0,
+      "q_after": -0.0342
+    },
+    {
+      "step": 24,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 6.58,
+      "skill": 0.2249,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7226,
+      "blend_weight": 0.7977,
+      "p_stat": {
+        "EASY": 0.5619,
+        "MEDIUM": 0.4073,
+        "HARD": 0.0308
+      },
+      "p_rl": {
+        "EASY": 0.9198,
+        "MEDIUM": 0.0401,
+        "HARD": 0.0401
+      },
+      "hybrid_policy": {
+        "EASY": 0.8474,
+        "MEDIUM": 0.1144,
+        "HARD": 0.0382
+      },
+      "reward": 1.2657,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.2335840567490528,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2657353305022163
+      },
+      "q_before": 0.0,
+      "q_after": 0.1899
+    },
+    {
+      "step": 25,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 8.06,
+      "skill": 0.224,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7263,
+      "blend_weight": 0.6558,
+      "p_stat": {
+        "EASY": 0.7241,
+        "MEDIUM": 0.2373,
+        "HARD": 0.0386
+      },
+      "p_rl": {
+        "EASY": 0.0389,
+        "MEDIUM": 0.0389,
+        "HARD": 0.9222
+      },
+      "hybrid_policy": {
+        "EASY": 0.2747,
+        "MEDIUM": 0.1072,
+        "HARD": 0.6181
+      },
+      "reward": -0.2953,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.2046620678150522,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2953379321849478
+      },
+      "q_before": 0.0,
+      "q_after": -0.0443
+    },
+    {
+      "step": 26,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 7.69,
+      "skill": 0.223,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7572,
+      "blend_weight": 0.6584,
+      "p_stat": {
+        "EASY": 0.5207,
+        "MEDIUM": 0.1964,
+        "HARD": 0.2829
+      },
+      "p_rl": {
+        "EASY": 0.0377,
+        "MEDIUM": 0.0377,
+        "HARD": 0.9245
+      },
+      "hybrid_policy": {
+        "EASY": 0.2027,
+        "MEDIUM": 0.0919,
+        "HARD": 0.7053
+      },
+      "reward": -0.2898,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.21016689642981598,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.289833103570184
+      },
+      "q_before": 0.0,
+      "q_after": -0.0435
+    },
+    {
+      "step": 27,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 14.16,
+      "skill": 0.2082,
+      "recent_accuracy": 0.2,
+      "confidence": 0.725,
+      "blend_weight": 0.6801,
+      "p_stat": {
+        "EASY": 0.5212,
+        "MEDIUM": 0.196,
+        "HARD": 0.2828
+      },
+      "p_rl": {
+        "EASY": 0.9268,
+        "MEDIUM": 0.0366,
+        "HARD": 0.0366
+      },
+      "hybrid_policy": {
+        "EASY": 0.797,
+        "MEDIUM": 0.0876,
+        "HARD": 0.1154
+      },
+      "reward": -0.4241,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.07587831966056109,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4241216803394389
+      },
+      "q_before": 0.0,
+      "q_after": -0.0636
+    },
+    {
+      "step": 28,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 15.15,
+      "skill": 0.1948,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7387,
+      "blend_weight": 0.6575,
+      "p_stat": {
+        "EASY": 0.734,
+        "MEDIUM": 0.2302,
+        "HARD": 0.0358
+      },
+      "p_rl": {
+        "EASY": 0.929,
+        "MEDIUM": 0.0355,
+        "HARD": 0.0355
+      },
+      "hybrid_policy": {
+        "EASY": 0.8622,
+        "MEDIUM": 0.1022,
+        "HARD": 0.0356
+      },
+      "reward": -0.4373,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.06266073968279895,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.43733926031720105
+      },
+      "q_before": 0.0,
+      "q_after": -0.0656
+    },
+    {
+      "step": 29,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 6.96,
+      "skill": 0.2144,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7407,
+      "blend_weight": 0.6671,
+      "p_stat": {
+        "EASY": 0.7422,
+        "MEDIUM": 0.2243,
+        "HARD": 0.0336
+      },
+      "p_rl": {
+        "EASY": 0.0345,
+        "MEDIUM": 0.0345,
+        "HARD": 0.9311
+      },
+      "hybrid_policy": {
+        "EASY": 0.2701,
+        "MEDIUM": 0.0976,
+        "HARD": 0.6323
+      },
+      "reward": 1.2576,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.22541836540001353,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.257569639153177
+      },
+      "q_before": -0.0656,
+      "q_after": 0.1329
+    },
+    {
+      "step": 30,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 15.97,
+      "skill": 0.2004,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7437,
+      "blend_weight": 0.6685,
+      "p_stat": {
+        "EASY": 0.7228,
+        "MEDIUM": 0.2394,
+        "HARD": 0.0378
+      },
+      "p_rl": {
+        "EASY": 0.9332,
+        "MEDIUM": 0.0334,
+        "HARD": 0.0334
+      },
+      "hybrid_policy": {
+        "EASY": 0.8634,
+        "MEDIUM": 0.1017,
+        "HARD": 0.0349
+      },
+      "reward": -0.4471,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.05288019039225215,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.44711980960774783
+      },
+      "q_before": 0.0,
+      "q_after": -0.0491
+    },
+    {
+      "step": 31,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 7.21,
+      "skill": 0.1877,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7413,
+      "blend_weight": 0.6706,
+      "p_stat": {
+        "EASY": 0.7317,
+        "MEDIUM": 0.2329,
+        "HARD": 0.0354
+      },
+      "p_rl": {
+        "EASY": 0.9352,
+        "MEDIUM": 0.0324,
+        "HARD": 0.0324
+      },
+      "hybrid_policy": {
+        "EASY": 0.8681,
+        "MEDIUM": 0.0985,
+        "HARD": 0.0334
+      },
+      "reward": -0.2793,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.22066747513378288,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2793325248662171
+      },
+      "q_before": 0.1329,
+      "q_after": 0.071
+    },
+    {
+      "step": 32,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 5.33,
+      "skill": 0.1872,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7193,
+      "blend_weight": 0.6689,
+      "p_stat": {
+        "EASY": 0.74,
+        "MEDIUM": 0.2268,
+        "HARD": 0.0333
+      },
+      "p_rl": {
+        "EASY": 0.0314,
+        "MEDIUM": 0.0314,
+        "HARD": 0.9371
+      },
+      "hybrid_policy": {
+        "EASY": 0.266,
+        "MEDIUM": 0.0961,
+        "HARD": 0.6379
+      },
+      "reward": -0.2537,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.24629174504000684,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.25370825495999316
+      },
+      "q_before": 0.0,
+      "q_after": -0.0381
+    },
+    {
+      "step": 33,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 10.82,
+      "skill": 0.2151,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6298,
+      "blend_weight": 0.6535,
+      "p_stat": {
+        "EASY": 0.54,
+        "MEDIUM": 0.1811,
+        "HARD": 0.2789
+      },
+      "p_rl": {
+        "EASY": 0.0305,
+        "MEDIUM": 0.939,
+        "HARD": 0.0305
+      },
+      "hybrid_policy": {
+        "EASY": 0.2071,
+        "MEDIUM": 0.6764,
+        "HARD": 0.1166
+      },
+      "reward": 1.2764,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.14420252758348384,
+        "r_prog": 0.1,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2763538013366476
+      },
+      "q_before": 0.0,
+      "q_after": 0.1915
+    },
+    {
+      "step": 34,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 12.14,
+      "skill": 0.201,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7353,
+      "blend_weight": 0.5909,
+      "p_stat": {
+        "EASY": 0.5569,
+        "MEDIUM": 0.4107,
+        "HARD": 0.0324
+      },
+      "p_rl": {
+        "EASY": 0.9408,
+        "MEDIUM": 0.0296,
+        "HARD": 0.0296
+      },
+      "hybrid_policy": {
+        "EASY": 0.7838,
+        "MEDIUM": 0.1855,
+        "HARD": 0.0307
+      },
+      "reward": -0.383,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.11695122079367878,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3830487792063212
+      },
+      "q_before": 0.0,
+      "q_after": -0.0664
+    },
+    {
+      "step": 35,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 8.74,
+      "skill": 0.1965,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7529,
+      "blend_weight": 0.6647,
+      "p_stat": {
+        "EASY": 0.7383,
+        "MEDIUM": 0.2271,
+        "HARD": 0.0346
+      },
+      "p_rl": {
+        "EASY": 0.0287,
+        "MEDIUM": 0.9426,
+        "HARD": 0.0287
+      },
+      "hybrid_policy": {
+        "EASY": 0.2666,
+        "MEDIUM": 0.7027,
+        "HARD": 0.0307
+      },
+      "reward": -0.3112,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.18878444513766868,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3112155548623313
+      },
+      "q_before": -0.0661,
+      "q_after": -0.1118
+    },
+    {
+      "step": 36,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 11.5,
+      "skill": 0.1958,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7572,
+      "blend_weight": 0.677,
+      "p_stat": {
+        "EASY": 0.5662,
+        "MEDIUM": 0.4044,
+        "HARD": 0.0294
+      },
+      "p_rl": {
+        "EASY": 0.0278,
+        "MEDIUM": 0.0278,
+        "HARD": 0.9443
+      },
+      "hybrid_policy": {
+        "EASY": 0.2017,
+        "MEDIUM": 0.1495,
+        "HARD": 0.6488
+      },
+      "reward": -0.3706,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.129380671371914,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.370619328628086
+      },
+      "q_before": -0.0692,
+      "q_after": -0.1237
+    },
+    {
+      "step": 37,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 11.45,
+      "skill": 0.1916,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7866,
+      "blend_weight": 0.68,
+      "p_stat": {
+        "EASY": 0.5354,
+        "MEDIUM": 0.1848,
+        "HARD": 0.2798
+      },
+      "p_rl": {
+        "EASY": 0.027,
+        "MEDIUM": 0.946,
+        "HARD": 0.027
+      },
+      "hybrid_policy": {
+        "EASY": 0.1897,
+        "MEDIUM": 0.7024,
+        "HARD": 0.1079
+      },
+      "reward": -0.3691,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1309243986267402,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3690756013732598
+      },
+      "q_before": -0.1118,
+      "q_after": -0.1655
+    },
+    {
+      "step": 38,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 8.5,
+      "skill": 0.1909,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9708,
+      "blend_weight": 0.7006,
+      "p_stat": {
+        "EASY": 0.5687,
+        "MEDIUM": 0.4026,
+        "HARD": 0.0287
+      },
+      "p_rl": {
+        "EASY": 0.0262,
+        "MEDIUM": 0.0262,
+        "HARD": 0.9476
+      },
+      "hybrid_policy": {
+        "EASY": 0.1886,
+        "MEDIUM": 0.1389,
+        "HARD": 0.6725
+      },
+      "reward": -0.3049,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1951008965774992,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3048991034225008
+      },
+      "q_before": -0.1237,
+      "q_after": -0.1253
+    },
+    {
+      "step": 39,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 15.72,
+      "skill": 0.1792,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9534,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.538,
+        "MEDIUM": 0.1827,
+        "HARD": 0.2793
+      },
+      "p_rl": {
+        "EASY": 0.9492,
+        "MEDIUM": 0.0254,
+        "HARD": 0.0254
+      },
+      "hybrid_policy": {
+        "EASY": 0.867,
+        "MEDIUM": 0.0569,
+        "HARD": 0.0762
+      },
+      "reward": -0.4472,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.05277212245479552,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4472278775452045
+      },
+      "q_before": 0.1899,
+      "q_after": 0.0857
+    },
+    {
+      "step": 40,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 7.24,
+      "skill": 0.1756,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9461,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.752,
+        "MEDIUM": 0.217,
+        "HARD": 0.031
+      },
+      "p_rl": {
+        "EASY": 0.0246,
+        "MEDIUM": 0.9507,
+        "HARD": 0.0246
+      },
+      "hybrid_policy": {
+        "EASY": 0.1701,
+        "MEDIUM": 0.804,
+        "HARD": 0.0259
+      },
+      "reward": -0.2803,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.21968444170475504,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.28031555829524496
+      },
+      "q_before": -0.0634,
+      "q_after": -0.0844
+    },
+    {
+      "step": 41,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 9.01,
+      "skill": 0.1947,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7503,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5768,
+        "MEDIUM": 0.3969,
+        "HARD": 0.0263
+      },
+      "p_rl": {
+        "EASY": 0.9522,
+        "MEDIUM": 0.0239,
+        "HARD": 0.0239
+      },
+      "hybrid_policy": {
+        "EASY": 0.8771,
+        "MEDIUM": 0.0985,
+        "HARD": 0.0244
+      },
+      "reward": 1.2162,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.18408921319995575,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2162404869531191
+      },
+      "q_before": 0.0857,
+      "q_after": 0.2553
+    },
+    {
+      "step": 42,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 12.21,
+      "skill": 0.2143,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6538,
+      "blend_weight": 0.6752,
+      "p_stat": {
+        "EASY": 0.7422,
+        "MEDIUM": 0.2242,
+        "HARD": 0.0335
+      },
+      "p_rl": {
+        "EASY": 0.9536,
+        "MEDIUM": 0.0232,
+        "HARD": 0.0232
+      },
+      "hybrid_policy": {
+        "EASY": 0.885,
+        "MEDIUM": 0.0885,
+        "HARD": 0.0265
+      },
+      "reward": 1.172,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.11373301616511605,
+        "r_prog": 0.0,
+        "r_mom": 0.05827829453479101,
+        "total": 1.172011310699907
+      },
+      "q_before": 0.0,
+      "q_after": 0.1758
+    },
+    {
+      "step": 43,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 15.06,
+      "skill": 0.2135,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6562,
+      "blend_weight": 0.6077,
+      "p_stat": {
+        "EASY": 0.7303,
+        "MEDIUM": 0.2329,
+        "HARD": 0.0368
+      },
+      "p_rl": {
+        "EASY": 0.0225,
+        "MEDIUM": 0.0225,
+        "HARD": 0.955
+      },
+      "hybrid_policy": {
+        "EASY": 0.3002,
+        "MEDIUM": 0.105,
+        "HARD": 0.5948
+      },
+      "reward": -0.4376,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.062437519308023784,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.43756248069197623
+      },
+      "q_before": 0.0,
+      "q_after": -0.0656
+    },
+    {
+      "step": 44,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 3.24,
+      "skill": 0.2335,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6251,
+      "blend_weight": 0.6093,
+      "p_stat": {
+        "EASY": 0.5261,
+        "MEDIUM": 0.1922,
+        "HARD": 0.2817
+      },
+      "p_rl": {
+        "EASY": 0.9564,
+        "MEDIUM": 0.0218,
+        "HARD": 0.0218
+      },
+      "hybrid_policy": {
+        "EASY": 0.7883,
+        "MEDIUM": 0.0884,
+        "HARD": 0.1233
+      },
+      "reward": 1.3024,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.2702901497473481,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.3024414235005115
+      },
+      "q_before": 0.0,
+      "q_after": 0.1954
+    },
+    {
+      "step": 45,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 16.45,
+      "skill": 0.2176,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6276,
+      "blend_weight": 0.5876,
+      "p_stat": {
+        "EASY": 0.7191,
+        "MEDIUM": 0.2408,
+        "HARD": 0.0401
+      },
+      "p_rl": {
+        "EASY": 0.9577,
+        "MEDIUM": 0.0212,
+        "HARD": 0.0212
+      },
+      "hybrid_policy": {
+        "EASY": 0.8593,
+        "MEDIUM": 0.1118,
+        "HARD": 0.029
+      },
+      "reward": -0.4532,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.046765674059972506,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4532343259400275
+      },
+      "q_before": 0.0,
+      "q_after": -0.068
+    },
+    {
+      "step": 46,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 6.13,
+      "skill": 0.2033,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6157,
+      "blend_weight": 0.5893,
+      "p_stat": {
+        "EASY": 0.7283,
+        "MEDIUM": 0.2343,
+        "HARD": 0.0374
+      },
+      "p_rl": {
+        "EASY": 0.9589,
+        "MEDIUM": 0.0205,
+        "HARD": 0.0205
+      },
+      "hybrid_policy": {
+        "EASY": 0.8642,
+        "MEDIUM": 0.1083,
+        "HARD": 0.0274
+      },
+      "reward": -0.2661,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.2339238487857267,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2660761512142733
+      },
+      "q_before": 0.0,
+      "q_after": -0.0399
+    },
+    {
+      "step": 47,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 6.46,
+      "skill": 0.1904,
+      "recent_accuracy": 0.2,
+      "confidence": 0.6966,
+      "blend_weight": 0.581,
+      "p_stat": {
+        "EASY": 0.7103,
+        "MEDIUM": 0.2512,
+        "HARD": 0.0385
+      },
+      "p_rl": {
+        "EASY": 0.9602,
+        "MEDIUM": 0.0199,
+        "HARD": 0.0199
+      },
+      "hybrid_policy": {
+        "EASY": 0.8554,
+        "MEDIUM": 0.1168,
+        "HARD": 0.0277
+      },
+      "reward": -0.2728,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.22723885595130233,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.27276114404869767
+      },
+      "q_before": 0.0,
+      "q_after": -0.0409
+    },
+    {
+      "step": 48,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 9.7,
+      "skill": 0.1787,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7004,
+      "blend_weight": 0.6376,
+      "p_stat": {
+        "EASY": 0.7382,
+        "MEDIUM": 0.2281,
+        "HARD": 0.0337
+      },
+      "p_rl": {
+        "EASY": 0.9614,
+        "MEDIUM": 0.0193,
+        "HARD": 0.0193
+      },
+      "hybrid_policy": {
+        "EASY": 0.8805,
+        "MEDIUM": 0.095,
+        "HARD": 0.0245
+      },
+      "reward": -0.3341,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1658769474337065,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3341230525662935
+      },
+      "q_before": 0.0,
+      "q_after": -0.0501
+    },
+    {
+      "step": 49,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 8.15,
+      "skill": 0.168,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9198,
+      "blend_weight": 0.6403,
+      "p_stat": {
+        "EASY": 0.746,
+        "MEDIUM": 0.2222,
+        "HARD": 0.0317
+      },
+      "p_rl": {
+        "EASY": 0.9625,
+        "MEDIUM": 0.0187,
+        "HARD": 0.0187
+      },
+      "hybrid_policy": {
+        "EASY": 0.8846,
+        "MEDIUM": 0.0919,
+        "HARD": 0.0234
+      },
+      "reward": -0.3033,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.19668855237062238,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3033114476293776
+      },
+      "q_before": 0.0,
+      "q_after": -0.0197
+    },
+    {
+      "step": 50,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 12.94,
+      "skill": 0.1649,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9427,
+      "blend_weight": 0.7938,
+      "p_stat": {
+        "EASY": 0.7532,
+        "MEDIUM": 0.2168,
+        "HARD": 0.03
+      },
+      "p_rl": {
+        "EASY": 0.0182,
+        "MEDIUM": 0.9637,
+        "HARD": 0.0182
+      },
+      "hybrid_policy": {
+        "EASY": 0.1697,
+        "MEDIUM": 0.8097,
+        "HARD": 0.0206
+      },
+      "reward": -0.4013,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.09866450444369433,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.40133549555630565
+      },
+      "q_before": 0.1915,
+      "q_after": 0.0911
+    },
+    {
+      "step": 51,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 11.16,
+      "skill": 0.191,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7613,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5823,
+        "MEDIUM": 0.3929,
+        "HARD": 0.0247
+      },
+      "p_rl": {
+        "EASY": 0.0176,
+        "MEDIUM": 0.9647,
+        "HARD": 0.0176
+      },
+      "hybrid_policy": {
+        "EASY": 0.1306,
+        "MEDIUM": 0.8504,
+        "HARD": 0.0191
+      },
+      "reward": 1.2695,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.13738534750763226,
+        "r_prog": 0.1,
+        "r_mom": 0.032151273753163435,
+        "total": 1.269536621260796
+      },
+      "q_before": -0.0844,
+      "q_after": 0.1425
+    },
+    {
+      "step": 52,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 14.03,
+      "skill": 0.2192,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6741,
+      "blend_weight": 0.6829,
+      "p_stat": {
+        "EASY": 0.569,
+        "MEDIUM": 0.4024,
+        "HARD": 0.0286
+      },
+      "p_rl": {
+        "EASY": 0.9658,
+        "MEDIUM": 0.0171,
+        "HARD": 0.0171
+      },
+      "hybrid_policy": {
+        "EASY": 0.84,
+        "MEDIUM": 0.1393,
+        "HARD": 0.0207
+      },
+      "reward": 1.2384,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.08009453205856297,
+        "r_prog": 0.1,
+        "r_mom": 0.05827829453479101,
+        "total": 1.238372826593354
+      },
+      "q_before": 0.0,
+      "q_after": 0.1858
+    },
+    {
+      "step": 53,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 14.78,
+      "skill": 0.2393,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6733,
+      "blend_weight": 0.6218,
+      "p_stat": {
+        "EASY": 0.6986,
+        "MEDIUM": 0.2598,
+        "HARD": 0.0416
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8653,
+        "MEDIUM": 0.1086,
+        "HARD": 0.0261
+      },
+      "reward": 1.1456,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.06947984951490765,
+        "r_prog": 0.0,
+        "r_mom": 0.07615941559557649,
+        "total": 1.145639265110484
+      },
+      "q_before": 0.0,
+      "q_after": 0.1718
+    },
+    {
+      "step": 54,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 14.18,
+      "skill": 0.2594,
+      "recent_accuracy": 0.8,
+      "confidence": 0.789,
+      "blend_weight": 0.6213,
+      "p_stat": {
+        "EASY": 0.7157,
+        "MEDIUM": 0.2432,
+        "HARD": 0.0411
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8716,
+        "MEDIUM": 0.1024,
+        "HARD": 0.0259
+      },
+      "reward": 1.1671,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.08011980425669102,
+        "r_prog": 0.0,
+        "r_mom": 0.0870061661742672,
+        "total": 1.1671259704309582
+      },
+      "q_before": 0.1718,
+      "q_after": 0.3211
+    },
+    {
+      "step": 55,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 8.99,
+      "skill": 0.2411,
+      "recent_accuracy": 0.8,
+      "confidence": 0.773,
+      "blend_weight": 0.7023,
+      "p_stat": {
+        "EASY": 0.7044,
+        "MEDIUM": 0.2509,
+        "HARD": 0.0447
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8886,
+        "MEDIUM": 0.0864,
+        "HARD": 0.025
+      },
+      "reward": -0.3102,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1897670152097027,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.31023298479029726
+      },
+      "q_before": 0.0,
+      "q_after": -0.0465
+    },
+    {
+      "step": 56,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 7.88,
+      "skill": 0.2246,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6632,
+      "blend_weight": 0.6911,
+      "p_stat": {
+        "EASY": 0.5777,
+        "MEDIUM": 0.3833,
+        "HARD": 0.0389
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8465,
+        "MEDIUM": 0.1299,
+        "HARD": 0.0235
+      },
+      "reward": -0.2899,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.21014879957360702,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.289851200426393
+      },
+      "q_before": 0.0,
+      "q_after": -0.0435
+    },
+    {
+      "step": 57,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 13.98,
+      "skill": 0.2236,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6633,
+      "blend_weight": 0.6143,
+      "p_stat": {
+        "EASY": 0.6948,
+        "MEDIUM": 0.2626,
+        "HARD": 0.0427
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.2782,
+        "MEDIUM": 0.1115,
+        "HARD": 0.6102
+      },
+      "reward": -0.4152,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.08484323104296619,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4151567689570338
+      },
+      "q_before": 0.0,
+      "q_after": -0.0623
+    },
+    {
+      "step": 58,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 10.29,
+      "skill": 0.2227,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7614,
+      "blend_weight": 0.6143,
+      "p_stat": {
+        "EASY": 0.5209,
+        "MEDIUM": 0.1963,
+        "HARD": 0.2828
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.2111,
+        "MEDIUM": 0.0859,
+        "HARD": 0.7029
+      },
+      "reward": -0.3394,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1605722841920298,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3394277158079702
+      },
+      "q_before": 0.0,
+      "q_after": -0.0509
+    },
+    {
+      "step": 59,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 12.53,
+      "skill": 0.2218,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9582,
+      "blend_weight": 0.683,
+      "p_stat": {
+        "EASY": 0.5214,
+        "MEDIUM": 0.1959,
+        "HARD": 0.2827
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.1767,
+        "MEDIUM": 0.0735,
+        "HARD": 0.7498
+      },
+      "reward": -0.3882,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1117621198803644,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3882378801196356
+      },
+      "q_before": 0.0,
+      "q_after": -0.0751
+    },
+    {
+      "step": 60,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 15.17,
+      "skill": 0.2209,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9564,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5881,
+        "MEDIUM": 0.3763,
+        "HARD": 0.0355
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.131,
+        "MEDIUM": 0.0886,
+        "HARD": 0.7804
+      },
+      "reward": -0.4355,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.06453234917764478,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4354676508223552
+      },
+      "q_before": -0.1253,
+      "q_after": -0.1526
+    },
+    {
+      "step": 61,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 7.98,
+      "skill": 0.2153,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9569,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5886,
+        "MEDIUM": 0.376,
+        "HARD": 0.0354
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.1311,
+        "MEDIUM": 0.8485,
+        "HARD": 0.0204
+      },
+      "reward": -0.293,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.20704336457829195,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.292956635421708
+      },
+      "q_before": 0.1425,
+      "q_after": 0.1116
+    },
+    {
+      "step": 62,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 9.84,
+      "skill": 0.2353,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7637,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.5568,
+        "MEDIUM": 0.4108,
+        "HARD": 0.0324
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8847,
+        "MEDIUM": 0.0955,
+        "HARD": 0.0198
+      },
+      "reward": 1.2008,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.16860928790559593,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2007605616587593
+      },
+      "q_before": 0.2553,
+      "q_after": 0.4222
+    },
+    {
+      "step": 63,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 16.53,
+      "skill": 0.2662,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6606,
+      "blend_weight": 0.6846,
+      "p_stat": {
+        "EASY": 0.718,
+        "MEDIUM": 0.2416,
+        "HARD": 0.0404
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2379,
+        "MEDIUM": 0.738,
+        "HARD": 0.0242
+      },
+      "reward": 1.2022,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.04390103833944122,
+        "r_prog": 0.1,
+        "r_mom": 0.05827829453479101,
+        "total": 1.2021793328742323
+      },
+      "q_before": 0.1858,
+      "q_after": 0.3816
+    },
+    {
+      "step": 64,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 7.77,
+      "skill": 0.2472,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6477,
+      "blend_weight": 0.6124,
+      "p_stat": {
+        "EASY": 0.5321,
+        "MEDIUM": 0.4268,
+        "HARD": 0.0411
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.7982,
+        "MEDIUM": 0.1756,
+        "HARD": 0.0261
+      },
+      "reward": -0.2883,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.21170154269750754,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2882984573024925
+      },
+      "q_before": 0.3211,
+      "q_after": 0.2297
+    },
+    {
+      "step": 65,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 12.24,
+      "skill": 0.2674,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6522,
+      "blend_weight": 0.6034,
+      "p_stat": {
+        "EASY": 0.7112,
+        "MEDIUM": 0.2463,
+        "HARD": 0.0425
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8653,
+        "MEDIUM": 0.1077,
+        "HARD": 0.0269
+      },
+      "reward": 1.1493,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.11717795290480701,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.1493292266579704
+      },
+      "q_before": 0.0,
+      "q_after": 0.1724
+    },
+    {
+      "step": 66,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 21.7,
+      "skill": 0.2875,
+      "recent_accuracy": 0.8,
+      "confidence": 0.7348,
+      "blend_weight": 0.6065,
+      "p_stat": {
+        "EASY": 0.7,
+        "MEDIUM": 0.2538,
+        "HARD": 0.0462
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8617,
+        "MEDIUM": 0.11,
+        "HARD": 0.0283
+      },
+      "reward": 1.0704,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.012099003602133106,
+        "r_prog": 0.0,
+        "r_mom": 0.05827829453479101,
+        "total": 1.0703772981369242
+      },
+      "q_before": 0.0,
+      "q_after": 0.1606
+    },
+    {
+      "step": 67,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 5.37,
+      "skill": 0.2666,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6193,
+      "blend_weight": 0.6644,
+      "p_stat": {
+        "EASY": 0.5533,
+        "MEDIUM": 0.399,
+        "HARD": 0.0477
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.1968,
+        "MEDIUM": 0.145,
+        "HARD": 0.6583
+      },
+      "reward": -0.2551,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.24488878393618005,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2551112160638199
+      },
+      "q_before": -0.0465,
+      "q_after": -0.0778
+    },
+    {
+      "step": 68,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 11.81,
+      "skill": 0.2985,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6173,
+      "blend_weight": 0.5835,
+      "p_stat": {
+        "EASY": 0.6653,
+        "MEDIUM": 0.2832,
+        "HARD": 0.0515
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2868,
+        "MEDIUM": 0.682,
+        "HARD": 0.0312
+      },
+      "reward": 1.2645,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.13234706132326968,
+        "r_prog": 0.1,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2644983350764334
+      },
+      "q_before": 0.0,
+      "q_after": 0.2113
+    },
+    {
+      "step": 69,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 10.27,
+      "skill": 0.331,
+      "recent_accuracy": 0.8,
+      "confidence": 0.7216,
+      "blend_weight": 0.5821,
+      "p_stat": {
+        "EASY": 0.5168,
+        "MEDIUM": 0.4361,
+        "HARD": 0.0472
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.7786,
+        "MEDIUM": 0.1919,
+        "HARD": 0.0294
+      },
+      "reward": 1.3208,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.16256691088097522,
+        "r_prog": 0.1,
+        "r_mom": 0.05827829453479101,
+        "total": 1.3208452054157664
+      },
+      "q_before": 0.0,
+      "q_after": 0.1981
+    },
+    {
+      "step": 70,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 4.67,
+      "skill": 0.3061,
+      "recent_accuracy": 0.6,
+      "confidence": 0.5983,
+      "blend_weight": 0.6551,
+      "p_stat": {
+        "EASY": 0.5017,
+        "MEDIUM": 0.4446,
+        "HARD": 0.0538
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8063,
+        "MEDIUM": 0.1642,
+        "HARD": 0.0295
+      },
+      "reward": -0.2496,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.25039005324649893,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.24960994675350107
+      },
+      "q_before": 0.0,
+      "q_after": -0.0089
+    },
+    {
+      "step": 71,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 4.56,
+      "skill": 0.2953,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6281,
+      "blend_weight": 0.5688,
+      "p_stat": {
+        "EASY": 0.6794,
+        "MEDIUM": 0.2668,
+        "HARD": 0.0538
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.3024,
+        "MEDIUM": 0.6649,
+        "HARD": 0.0327
+      },
+      "reward": -0.2516,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.24835655075060614,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.25164344924939386
+      },
+      "q_before": 0.2113,
+      "q_after": 0.1704
+    },
+    {
+      "step": 72,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 8.14,
+      "skill": 0.2852,
+      "recent_accuracy": 0.4,
+      "confidence": 0.638,
+      "blend_weight": 0.5897,
+      "p_stat": {
+        "EASY": 0.5183,
+        "MEDIUM": 0.4352,
+        "HARD": 0.0465
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2225,
+        "MEDIUM": 0.7486,
+        "HARD": 0.0289
+      },
+      "reward": -0.3073,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.19268259310479635,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.30731740689520365
+      },
+      "q_before": 0.1704,
+      "q_after": 0.0988
+    },
+    {
+      "step": 73,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 6.28,
+      "skill": 0.2645,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7438,
+      "blend_weight": 0.5966,
+      "p_stat": {
+        "EASY": 0.523,
+        "MEDIUM": 0.4324,
+        "HARD": 0.0446
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.7877,
+        "MEDIUM": 0.1844,
+        "HARD": 0.0279
+      },
+      "reward": -0.2776,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.2223518885303498,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2776481114696502
+      },
+      "q_before": 0.0,
+      "q_after": 0.0154
+    },
+    {
+      "step": 74,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 10.96,
+      "skill": 0.2846,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7385,
+      "blend_weight": 0.6707,
+      "p_stat": {
+        "EASY": 0.7016,
+        "MEDIUM": 0.2527,
+        "HARD": 0.0457
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8794,
+        "MEDIUM": 0.0944,
+        "HARD": 0.0262
+      },
+      "reward": 1.1723,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.14015761386349349,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.172308887616657
+      },
+      "q_before": 0.4222,
+      "q_after": 0.5862
+    },
+    {
+      "step": 75,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 9.97,
+      "skill": 0.2753,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7492,
+      "blend_weight": 0.667,
+      "p_stat": {
+        "EASY": 0.6907,
+        "MEDIUM": 0.2598,
+        "HARD": 0.0495
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2411,
+        "MEDIUM": 0.7313,
+        "HARD": 0.0276
+      },
+      "reward": -0.3389,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.16112513963820274,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.33887486036179726
+      },
+      "q_before": 0.3816,
+      "q_after": 0.2735
+    },
+    {
+      "step": 76,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 10.79,
+      "skill": 0.2954,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6733,
+      "blend_weight": 0.6745,
+      "p_stat": {
+        "EASY": 0.5277,
+        "MEDIUM": 0.4295,
+        "HARD": 0.0427
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8238,
+        "MEDIUM": 0.1511,
+        "HARD": 0.0252
+      },
+      "reward": 1.1781,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.14594666710110477,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.1780979408542682
+      },
+      "q_before": 0.0,
+      "q_after": 0.1767
+    },
+    {
+      "step": 77,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 7.96,
+      "skill": 0.2853,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6727,
+      "blend_weight": 0.6213,
+      "p_stat": {
+        "EASY": 0.685,
+        "MEDIUM": 0.2634,
+        "HARD": 0.0516
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2697,
+        "MEDIUM": 0.7004,
+        "HARD": 0.0299
+      },
+      "reward": -0.299,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.20098101468343613,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.2990189853165639
+      },
+      "q_before": 0.0,
+      "q_after": -0.0216
+    },
+    {
+      "step": 78,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 9.49,
+      "skill": 0.3052,
+      "recent_accuracy": 0.6,
+      "confidence": 0.69,
+      "blend_weight": 0.6209,
+      "p_stat": {
+        "EASY": 0.523,
+        "MEDIUM": 0.4324,
+        "HARD": 0.0446
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.7985,
+        "MEDIUM": 0.1743,
+        "HARD": 0.0273
+      },
+      "reward": 1.2026,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.17040996716530746,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.202561240918471
+      },
+      "q_before": 0.1724,
+      "q_after": 0.324
+    },
+    {
+      "step": 79,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 3.84,
+      "skill": 0.2945,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6534,
+      "blend_weight": 0.633,
+      "p_stat": {
+        "EASY": 0.6798,
+        "MEDIUM": 0.2666,
+        "HARD": 0.0536
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.26,
+        "MEDIUM": 0.7098,
+        "HARD": 0.0302
+      },
+      "reward": -0.2438,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.2561889420631703,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.24381105793682972
+      },
+      "q_before": -0.0216,
+      "q_after": -0.0549
+    },
+    {
+      "step": 80,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 6.83,
+      "skill": 0.3144,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6507,
+      "blend_weight": 0.6074,
+      "p_stat": {
+        "EASY": 0.5186,
+        "MEDIUM": 0.435,
+        "HARD": 0.0464
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.7908,
+        "MEDIUM": 0.1809,
+        "HARD": 0.0283
+      },
+      "reward": 1.247,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.21483149601826015,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2469827697714237
+      },
+      "q_before": 0.0,
+      "q_after": 0.187
+    },
+    {
+      "step": 81,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 12.96,
+      "skill": 0.312,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6387,
+      "blend_weight": 0.6055,
+      "p_stat": {
+        "EASY": 0.6751,
+        "MEDIUM": 0.2694,
+        "HARD": 0.0555
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.2764,
+        "MEDIUM": 0.1164,
+        "HARD": 0.6072
+      },
+      "reward": -0.4037,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.09630077765541127,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4036992223445887
+      },
+      "q_before": 0.0,
+      "q_after": -0.0606
+    },
+    {
+      "step": 82,
+      "action": "MEDIUM",
+      "correct": true,
+      "response_time": 12.79,
+      "skill": 0.3445,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6356,
+      "blend_weight": 0.5971,
+      "p_stat": {
+        "EASY": 0.4781,
+        "MEDIUM": 0.2281,
+        "HARD": 0.2938
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2025,
+        "MEDIUM": 0.6691,
+        "HARD": 0.1283
+      },
+      "reward": 1.2335,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.10139615348927764,
+        "r_prog": 0.1,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2335474272424412
+      },
+      "q_before": 0.0,
+      "q_after": 0.185
+    },
+    {
+      "step": 83,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 5.78,
+      "skill": 0.3633,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6232,
+      "blend_weight": 0.5949,
+      "p_stat": {
+        "EASY": 0.4955,
+        "MEDIUM": 0.4479,
+        "HARD": 0.0567
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.7758,
+        "MEDIUM": 0.1913,
+        "HARD": 0.0329
+      },
+      "reward": 1.292,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.23367176847594148,
+        "r_prog": 0.0,
+        "r_mom": 0.05827829453479101,
+        "total": 1.2919500630107326
+      },
+      "q_before": 0.0,
+      "q_after": 0.1938
+    },
+    {
+      "step": 84,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 8.54,
+      "skill": 0.3356,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6483,
+      "blend_weight": 0.5863,
+      "p_stat": {
+        "EASY": 0.651,
+        "MEDIUM": 0.2829,
+        "HARD": 0.0661
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2791,
+        "MEDIUM": 0.6838,
+        "HARD": 0.0371
+      },
+      "reward": -0.3149,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.18505017363117054,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.31494982636882946
+      },
+      "q_before": -0.068,
+      "q_after": -0.105
+    },
+    {
+      "step": 85,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 8.38,
+      "skill": 0.3104,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6546,
+      "blend_weight": 0.6038,
+      "p_stat": {
+        "EASY": 0.6644,
+        "MEDIUM": 0.2756,
+        "HARD": 0.0599
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8469,
+        "MEDIUM": 0.1193,
+        "HARD": 0.0338
+      },
+      "reward": -0.3132,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.1868148030912827,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.31318519690871727
+      },
+      "q_before": 0.0,
+      "q_after": -0.0449
+    },
+    {
+      "step": 86,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 12.56,
+      "skill": 0.2873,
+      "recent_accuracy": 0.4,
+      "confidence": 0.656,
+      "blend_weight": 0.6082,
+      "p_stat": {
+        "EASY": 0.6361,
+        "MEDIUM": 0.3023,
+        "HARD": 0.0616
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8371,
+        "MEDIUM": 0.1286,
+        "HARD": 0.0343
+      },
+      "reward": -0.395,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.10502622831872609,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3949737716812739
+      },
+      "q_before": 0.0154,
+      "q_after": -0.0441
+    },
+    {
+      "step": 87,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 12.13,
+      "skill": 0.2855,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7544,
+      "blend_weight": 0.6092,
+      "p_stat": {
+        "EASY": 0.6513,
+        "MEDIUM": 0.2926,
+        "HARD": 0.0561
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.2647,
+        "MEDIUM": 0.1245,
+        "HARD": 0.6109
+      },
+      "reward": -0.3865,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.11350197299868303,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.38649802700131697
+      },
+      "q_before": 0.0,
+      "q_after": -0.0341
+    },
+    {
+      "step": 88,
+      "action": "EASY",
+      "correct": false,
+      "response_time": 10.62,
+      "skill": 0.2647,
+      "recent_accuracy": 0.0,
+      "confidence": 0.9666,
+      "blend_weight": 0.6781,
+      "p_stat": {
+        "EASY": 0.4904,
+        "MEDIUM": 0.2193,
+        "HARD": 0.2903
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8133,
+        "MEDIUM": 0.0819,
+        "HARD": 0.1048
+      },
+      "reward": -0.3567,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.14325044517339672,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3567495548266033
+      },
+      "q_before": 0.1767,
+      "q_after": 0.1206
+    },
+    {
+      "step": 89,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 13.88,
+      "skill": 0.2848,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7753,
+      "blend_weight": 0.8,
+      "p_stat": {
+        "EASY": 0.7015,
+        "MEDIUM": 0.2528,
+        "HARD": 0.0457
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.9136,
+        "MEDIUM": 0.0639,
+        "HARD": 0.0225
+      },
+      "reward": 1.116,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.08384125534501058,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.115992529098174
+      },
+      "q_before": 0.1206,
+      "q_after": 0.2699
+    },
+    {
+      "step": 90,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 11.02,
+      "skill": 0.2755,
+      "recent_accuracy": 0.2,
+      "confidence": 0.7887,
+      "blend_weight": 0.6927,
+      "p_stat": {
+        "EASY": 0.6905,
+        "MEDIUM": 0.2599,
+        "HARD": 0.0495
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8818,
+        "MEDIUM": 0.0914,
+        "HARD": 0.0268
+      },
+      "reward": -0.3648,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.13522930811719497,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.36477069188280503
+      },
+      "q_before": 0.0,
+      "q_after": -0.0183
+    },
+    {
+      "step": 91,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 8.59,
+      "skill": 0.2955,
+      "recent_accuracy": 0.4,
+      "confidence": 0.681,
+      "blend_weight": 0.7021,
+      "p_stat": {
+        "EASY": 0.5276,
+        "MEDIUM": 0.4296,
+        "HARD": 0.0428
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8359,
+        "MEDIUM": 0.1397,
+        "HARD": 0.0244
+      },
+      "reward": 1.2174,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.18525882437734523,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.2174100981305087
+      },
+      "q_before": 0.2699,
+      "q_after": 0.4046
+    },
+    {
+      "step": 92,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 12.19,
+      "skill": 0.2855,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6809,
+      "blend_weight": 0.6267,
+      "p_stat": {
+        "EASY": 0.6849,
+        "MEDIUM": 0.2635,
+        "HARD": 0.0516
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.2661,
+        "MEDIUM": 0.7042,
+        "HARD": 0.0297
+      },
+      "reward": -0.3867,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.11329205379117259,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.3867079462088274
+      },
+      "q_before": -0.0549,
+      "q_after": -0.1047
+    },
+    {
+      "step": 93,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 10.17,
+      "skill": 0.3054,
+      "recent_accuracy": 0.6,
+      "confidence": 0.68,
+      "blend_weight": 0.6267,
+      "p_stat": {
+        "EASY": 0.5229,
+        "MEDIUM": 0.4324,
+        "HARD": 0.0446
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.801,
+        "MEDIUM": 0.1719,
+        "HARD": 0.0271
+      },
+      "reward": 1.1857,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.15359725213979986,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.1857485258929634
+      },
+      "q_before": 0.0,
+      "q_after": 0.1779
+    },
+    {
+      "step": 94,
+      "action": "HARD",
+      "correct": true,
+      "response_time": 8.61,
+      "skill": 0.3471,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6844,
+      "blend_weight": 0.626,
+      "p_stat": {
+        "EASY": 0.6797,
+        "MEDIUM": 0.2666,
+        "HARD": 0.0536
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.2647,
+        "MEDIUM": 0.1102,
+        "HARD": 0.6252
+      },
+      "reward": 1.4418,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.18347239334995916,
+        "r_prog": 0.2,
+        "r_mom": 0.05827829453479101,
+        "total": 1.4417506878847501
+      },
+      "q_before": 0.0,
+      "q_after": 0.243
+    },
+    {
+      "step": 95,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 8.59,
+      "skill": 0.3334,
+      "recent_accuracy": 0.6,
+      "confidence": 0.6825,
+      "blend_weight": 0.6291,
+      "p_stat": {
+        "EASY": 0.4622,
+        "MEDIUM": 0.2389,
+        "HARD": 0.2989
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.1819,
+        "MEDIUM": 0.6967,
+        "HARD": 0.1213
+      },
+      "reward": -0.3128,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.18720837252246222,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.31279162747753775
+      },
+      "q_before": 0.1981,
+      "q_after": 0.1215
+    },
+    {
+      "step": 96,
+      "action": "HARD",
+      "correct": false,
+      "response_time": 14.13,
+      "skill": 0.3306,
+      "recent_accuracy": 0.4,
+      "confidence": 0.672,
+      "blend_weight": 0.6278,
+      "p_stat": {
+        "EASY": 0.5006,
+        "MEDIUM": 0.4452,
+        "HARD": 0.0543
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.0167,
+        "HARD": 0.9667
+      },
+      "hybrid_policy": {
+        "EASY": 0.1968,
+        "MEDIUM": 0.1762,
+        "HARD": 0.627
+      },
+      "reward": -0.4283,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.07165889427344667,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4283411057265533
+      },
+      "q_before": 0.0,
+      "q_after": -0.0393
+    },
+    {
+      "step": 97,
+      "action": "MEDIUM",
+      "correct": false,
+      "response_time": 15.05,
+      "skill": 0.3181,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6633,
+      "blend_weight": 0.6204,
+      "p_stat": {
+        "EASY": 0.4696,
+        "MEDIUM": 0.234,
+        "HARD": 0.2965
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.1886,
+        "MEDIUM": 0.6885,
+        "HARD": 0.1229
+      },
+      "reward": -0.4399,
+      "reward_components": {
+        "r_acc": -0.5,
+        "r_time": 0.06010323666075492,
+        "r_prog": 0.0,
+        "r_mom": 0.0,
+        "total": -0.4398967633392451
+      },
+      "q_before": 0.185,
+      "q_after": 0.1163
+    },
+    {
+      "step": 98,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 16.04,
+      "skill": 0.3375,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6603,
+      "blend_weight": 0.6143,
+      "p_stat": {
+        "EASY": 0.5076,
+        "MEDIUM": 0.4413,
+        "HARD": 0.0511
+      },
+      "p_rl": {
+        "EASY": 0.0167,
+        "MEDIUM": 0.9667,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.206,
+        "MEDIUM": 0.764,
+        "HARD": 0.0299
+      },
+      "reward": 1.0818,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.049630756814672626,
+        "r_prog": 0.0,
+        "r_mom": 0.032151273753163435,
+        "total": 1.081782030567836
+      },
+      "q_before": -0.0399,
+      "q_after": 0.1545
+    },
+    {
+      "step": 99,
+      "action": "EASY",
+      "correct": true,
+      "response_time": 7.79,
+      "skill": 0.3565,
+      "recent_accuracy": 0.4,
+      "confidence": 0.6562,
+      "blend_weight": 0.6122,
+      "p_stat": {
+        "EASY": 0.6635,
+        "MEDIUM": 0.2762,
+        "HARD": 0.0604
+      },
+      "p_rl": {
+        "EASY": 0.9667,
+        "MEDIUM": 0.0167,
+        "HARD": 0.0167
+      },
+      "hybrid_policy": {
+        "EASY": 0.8491,
+        "MEDIUM": 0.1173,
+        "HARD": 0.0336
+      },
+      "reward": 1.2669,
+      "reward_components": {
+        "r_acc": 1.0,
+        "r_time": 0.2086191216055115,
+        "r_prog": 0.0,
+        "r_mom": 0.05827829453479101,
+        "total": 1.2668974161403026
+      },
+      "q_before": 0.1938,
+      "q_after": 0.3548
+    }
+  ]
+}
