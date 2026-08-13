@@ -146,7 +146,6 @@ palms-mvp/
 ### Prerequisites
 
 - **Python 3.12** (not 3.14 — some deps don't have wheels yet)
-- **Node 18+**
 - **Ollama** — https://ollama.com
 - A **MongoDB Atlas** account (free tier is enough)
 - A **Neo4j Aura** account (free tier — 200k nodes, permanent, unlike Sandbox which expires in 3 days)
