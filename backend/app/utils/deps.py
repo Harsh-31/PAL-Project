@@ -1,4 +1,5 @@
 """Shared FastAPI dependencies."""
+from __future__ import annotations
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from bson import ObjectId

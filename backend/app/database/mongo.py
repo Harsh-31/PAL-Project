@@ -1,10 +1,11 @@
 """Async MongoDB client (Motor) — operational store for users, interactions, notes."""
+from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.config import settings
 
 
 class MongoDB:
-    client: AsyncIOMotorClient | None = None
+    client: Optional[AsyncIOMotorClient] = None
     db = None
 
 

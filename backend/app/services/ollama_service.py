@@ -4,6 +4,7 @@ All prompts are engineered to return strict JSON where structure matters.
 Every call goes through _chat which uses Ollama's native /api/chat endpoint
 with format='json' so we don't have to parse free text.
 """
+from __future__ import annotations
 import json
 import re
 import uuid
@@ -56,16 +57,10 @@ class OllamaService:
         concept_name: str,
         chunk_summary: str,
         difficulty: int,
-        hobbies: list[str],  # kept in signature for compat, not used in generation
+        hobbies: list[str],
+        cognitive_state: str = "Confident",
     ) -> dict:
-        """Adaptive MCQ generation — difficulty-scaled, concept-focused.
-
-        Note: hobbies are intentionally NOT used here. Hobby analogies belong to
-        the post-lecture summary (summarize_with_hobby) and the sidebar chat.
-        A quiz question should test the concept directly, in domain-appropriate
-        language — mixing in the learner's cricket or Marvel references makes
-        the question feel gimmicky and can obscure what's actually being asked.
-        """
+        """Adaptive MCQ generation — difficulty-scaled, cognitive-state-aware."""
         system = (
             "You are PAL, an adaptive tutor. Generate exactly ONE multiple-choice question "
             "that tests understanding of the specified concept. "
@@ -73,11 +68,29 @@ class OllamaService:
             "Schema: {\"question\": str, \"options\": [str,str,str,str], "
             "\"correct_index\": int (0-3), \"explanation\": str}."
         )
+        state_guidance = {
+            "Struggling": (
+                "- The learner is STRUGGLING: use simple, clear language. "
+                "Scaffold the question with helpful context. "
+                "Make distractors obviously wrong so the learner can build confidence.\n"
+            ),
+            "Confident": (
+                "- The learner is performing well: use standard academic phrasing. "
+                "Distractors should be plausible but distinguishable.\n"
+            ),
+            "Mastered": (
+                "- The learner has MASTERED this concept: use advanced application questions. "
+                "Require cross-concept synthesis or edge-case reasoning. "
+                "Distractors should be tricky and require careful thought.\n"
+            ),
+        }
         user = (
             f"Concept: {concept_name}\n"
             f"Lecture chunk summary: {chunk_summary}\n"
             f"Difficulty (1-5): {difficulty}\n"
+            f"Learner cognitive state: {cognitive_state}\n"
             "Rules:\n"
+            f"{state_guidance.get(cognitive_state, state_guidance['Confident'])}"
             "- The question and all options must be phrased in direct, domain-appropriate language.\n"
             "- Do NOT reference sports, movies, hobbies, or everyday analogies in the question or options.\n"
             "- Exactly 4 options.\n"
@@ -105,7 +118,11 @@ class OllamaService:
             data["correct_index"] = int(data.get("correct_index", 0)) % 4
         except Exception:
             data["correct_index"] = 0
-        data.setdefault("explanation", "")
+        # The model occasionally returns valid JSON with an empty (not missing)
+        # "explanation" — setdefault alone won't catch that, and a blank
+        # explanation means the learner sees nothing after a wrong answer.
+        if not (data.get("explanation") or "").strip():
+            data["explanation"] = f"The correct answer is: {data['options'][data['correct_index']]}"
         data["id"] = str(uuid.uuid4())
         return data
 

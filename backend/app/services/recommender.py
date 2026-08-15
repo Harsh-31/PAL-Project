@@ -362,8 +362,8 @@ async def recommend_for_intervention(user_id: str, intervention_action: str,
         return await recommend_supplementary(user_id, [concept_id], struggle_threshold=threshold)
     if intervention_action == "offer_challenge_content":
         return await recommend_challenge(concept_id)
-    # simplify_with_hobby_analogy (Frustrated) deliberately returns no
-    # content — that state is served by the existing hobby-analogy mechanism
+    # simplify_with_hobby_analogy (Struggling) deliberately returns no
+    # content — that action is served by the existing hobby-analogy mechanism
     # instead (see AdaptiveLearningOrchestrator._NEEDS_CONTENT).
     return []
 

@@ -9,6 +9,7 @@ Responsibilities:
 Reads courses.json in the FULL MongoDB/PALMS schema (course_id, lecture_id,
 chunk_id, start_time/end_time, summary_text, difficulty_score, etc.).
 """
+from __future__ import annotations
 import json
 import re
 from collections import deque
@@ -177,13 +178,18 @@ async def seed_courses_if_empty() -> None:
     print(f"[KG] seeded {len(courses)} courses ({len(chunk_rows)} chunks, {len(concept_rows)} concepts)")
 
 
-async def upsert_learner(user_id: str, hobbies: list[str], baseline: str, goal: str) -> None:
+async def upsert_learner(
+    user_id: str, hobbies: list[str], baseline: str, goal: str,
+    preferred_pace: str | None = None,
+) -> None:
     driver = get_driver()
     async with driver.session() as s:
         await s.run(
             """MERGE (u:Learner {id:$id})
-                 SET u.hobbies=$hobbies, u.baseline=$baseline, u.goal=$goal""",
+                 SET u.hobbies=$hobbies, u.baseline=$baseline, u.goal=$goal,
+                     u.preferred_pace=$pace, u.last_active=timestamp()""",
             id=user_id, hobbies=hobbies, baseline=baseline, goal=goal,
+            pace=preferred_pace,
         )
 
 
@@ -348,20 +354,53 @@ async def get_all_mastery(user_id: str, course_id: str) -> list[dict]:
         return [dict(rec) async for rec in r]
 
 
-async def get_intervention(mastery: float) -> dict | None:
-    """Consult the Process KG — pick the highest-priority rule whose threshold fires."""
+async def get_intervention(user_id: str, concept_id: str, mastery: float) -> dict:
+    """Classify the learner into a cognitive state using per-learner thresholds.
+
+    Thresholds (tau_struggling, tau_mastered) are stored on the MASTERS edge
+    and learned by the Threshold RL.  Falls back to global defaults when no
+    learned values exist yet.
+    """
     driver = get_driver()
     async with driver.session() as s:
         r = await s.run(
-            """MATCH (s:CognitiveState)-[:TRIGGERS]->(r:InterventionRule)
-               WHERE $m <= r.mastery_threshold
-               RETURN s.name AS state, r.name AS rule, r.action AS action,
-                      r.mastery_threshold AS thr
-               ORDER BY r.mastery_threshold ASC LIMIT 1""",
-            m=mastery,
+            """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept {id:$cid})
+               RETURN coalesce(m.tau_struggling, 0.40) AS tau_s,
+                      coalesce(m.tau_mastered, 0.85) AS tau_m""",
+            uid=user_id, cid=concept_id,
         )
         rec = await r.single()
-        return dict(rec) if rec else None
+        tau_s = rec["tau_s"] if rec else 0.40
+        tau_m = rec["tau_m"] if rec else 0.85
+
+    if mastery < tau_s:
+        state = "Struggling"
+    elif mastery >= tau_m:
+        state = "Mastered"
+    else:
+        state = "Confident"
+
+    actions_map = {
+        "Struggling": [
+            {"rule": "OfferSimplerAnalogy", "action": "simplify_with_hobby_analogy"},
+            {"rule": "AddRemedialContent", "action": "insert_prerequisite_video"},
+        ],
+        "Confident": [
+            {"rule": "ConfidentContinue", "action": "continue_normal"},
+        ],
+        "Mastered": [
+            {"rule": "MasteredChallenge", "action": "offer_challenge_content"},
+        ],
+    }
+    rules = actions_map[state]
+    return {
+        "state": state,
+        "rule": rules[0]["rule"],
+        "action": rules[0]["action"],
+        "all_actions": [r["action"] for r in rules],
+        "tau_struggling": tau_s,
+        "tau_mastered": tau_m,
+    }
 
 
 async def kg_snapshot(user_id: str) -> dict:
@@ -371,7 +410,10 @@ async def kg_snapshot(user_id: str) -> dict:
         r = await s.run(
             """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept)
                RETURN k.name AS concept, m.score AS score,
-                      m.attempts AS attempts
+                      m.attempts AS attempts,
+                      m.tau_struggling AS tau_struggling,
+                      m.tau_mastered AS tau_mastered,
+                      m.last_kg_state AS cognitive_state
                ORDER BY m.score DESC""",
             uid=user_id,
         )
@@ -383,6 +425,96 @@ async def kg_snapshot(user_id: str) -> dict:
         )
         courses = [rec["title"] async for rec in r2]
         return {"enrolled": courses, "mastery": rows}
+
+
+async def update_thresholds(
+    user_id: str, concept_id: str,
+    tau_struggling: float, tau_mastered: float, tau_timestep: int,
+) -> None:
+    driver = get_driver()
+    async with driver.session() as s:
+        await s.run(
+            """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept {id:$cid})
+               SET m.tau_struggling = $ts,
+                   m.tau_mastered   = $tm,
+                   m.tau_timestep   = $tt""",
+            uid=user_id, cid=concept_id, ts=tau_struggling, tm=tau_mastered, tt=tau_timestep,
+        )
+
+
+async def get_thresholds(user_id: str, concept_id: str) -> dict:
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept {id:$cid})
+               RETURN m.tau_struggling AS tau_struggling,
+                      m.tau_mastered   AS tau_mastered,
+                      coalesce(m.tau_timestep, 0) AS tau_timestep""",
+            uid=user_id, cid=concept_id,
+        )
+        rec = await r.single()
+        if not rec:
+            return {"tau_struggling": None, "tau_mastered": None, "tau_timestep": 0}
+        return dict(rec)
+
+
+async def sync_rl_state_to_edge(user_id: str, concept_id: str, rl_state: dict) -> None:
+    """Write-through copy of the Hybrid RL state vector to the MASTERS edge."""
+    driver = get_driver()
+    async with driver.session() as s:
+        await s.run(
+            """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept {id:$cid})
+               SET m.rl_skill                    = $skill,
+                   m.rl_recent_accuracy           = $acc,
+                   m.rl_normalized_response_time   = $rt,
+                   m.rl_streak_momentum            = $streak,
+                   m.rl_learning_velocity          = $vel,
+                   m.rl_confidence                 = $conf,
+                   m.rl_current_streak             = $cs,
+                   m.rl_last_action                = $la,
+                   m.rl_steps_since_action_change  = $ssac""",
+            uid=user_id, cid=concept_id,
+            skill=rl_state.get("skill", 0.5),
+            acc=rl_state.get("recent_accuracy", 0.5),
+            rt=rl_state.get("normalized_response_time", 0.5),
+            streak=rl_state.get("streak_momentum", 0.0),
+            vel=rl_state.get("learning_velocity", 0.0),
+            conf=rl_state.get("confidence", 0.5),
+            cs=rl_state.get("current_streak", 0),
+            la=rl_state.get("last_action", "MEDIUM"),
+            ssac=rl_state.get("steps_since_action_change", 0),
+        )
+
+
+async def get_rl_state_from_edge(user_id: str, concept_id: str) -> dict | None:
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept {id:$cid})
+               RETURN m.rl_skill AS rl_skill,
+                      m.rl_recent_accuracy AS rl_recent_accuracy,
+                      m.rl_normalized_response_time AS rl_normalized_response_time,
+                      m.rl_streak_momentum AS rl_streak_momentum,
+                      m.rl_learning_velocity AS rl_learning_velocity,
+                      m.rl_confidence AS rl_confidence""",
+            uid=user_id, cid=concept_id,
+        )
+        rec = await r.single()
+        if not rec or rec["rl_skill"] is None:
+            return None
+        return dict(rec)
+
+
+async def get_last_cognitive_state(user_id: str, concept_id: str) -> str | None:
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (u:Learner {id:$uid})-[m:MASTERS]->(k:Concept {id:$cid})
+               RETURN m.last_kg_state AS state""",
+            uid=user_id, cid=concept_id,
+        )
+        rec = await r.single()
+        return rec["state"] if rec else None
 
 
 async def get_supplementary_lectures(user_id: str, course_id: str,

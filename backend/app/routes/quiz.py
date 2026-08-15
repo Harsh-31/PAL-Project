@@ -12,6 +12,7 @@ Two distinct things happen on every /submit call, deliberately kept separate:
      intervention, RL difficulty preview, and — only when a fresh state entry
      requires it — the Recommendation Engine.
 """
+from __future__ import annotations
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
@@ -68,11 +69,16 @@ async def generate(payload: QuizRequest, user=Depends(current_user)):
     )
     difficulty = decision_result["difficulty"]
 
+    cognitive_state = await kg_service.get_last_cognitive_state(
+        user["id"], concept["id"]
+    ) or "Confident"
+
     q = await ollama.generate_mcq(
         concept_name=concept["name"],
         chunk_summary=chunk["summary"],
         difficulty=difficulty,
         hobbies=hobbies,
+        cognitive_state=cognitive_state,
     )
 
     # Cache the question so we can verify correctness server-side later.

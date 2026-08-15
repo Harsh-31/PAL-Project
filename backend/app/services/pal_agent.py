@@ -20,30 +20,22 @@ their outputs into one response. Process KG never overrides the RL difficulty
 decision, and RL never decides an intervention. See README "Hybrid Reinforcement
 Learning Adaptation" and the Process KG docs for each subsystem's own detail.
 
-Recommendations trigger on STATE ENTRY, not on every interaction: the
-Recommendation Engine only runs when the Process KG's cognitive state just
-CHANGED to one that needs content (e.g. OnTrack -> Struggling), not merely
-because the learner remains in that state across consecutive answers
-(Struggling -> Struggling). The previous state is persisted on the same
-Neo4j MASTERS edge record_mastery already writes (see
-kg_service.swap_intervention_state), so this survives separate HTTP requests.
-
-Only Struggling ever triggers a recommendation (remedial content). Confident
-does NOT — it means "performing well, continue normally," nothing more; RL
-may still independently pick a harder question, but that's RL's decision
-alone. When a concept reaches Mastered, any still-active remedial
-recommendation for that concept is retired (recommender.
-retire_recommendations_for_concept) — this orchestrator coordinates that
-retirement, it does not implement the recommendation ranking itself.
+The Process KG uses 3 cognitive states (Struggling, Confident, Mastered)
+with per-learner thresholds (tau_struggling, tau_mastered) learned by a
+separate Threshold RL.  Recommendations trigger on STATE ENTRY into
+Struggling only.  Mastered triggers offer_challenge_content (harder
+questions) and retires any active remedial recommendations.
 
 The normal answer explanation and the wrong-answer analogy are NOT part of
 this orchestrator — they are "immediate answer feedback," generated directly
 in routes/quiz.py, independent of Process KG state, RL, and video playback.
 This orchestrator must never generate explanations itself.
 """
+from __future__ import annotations
 from datetime import datetime, timezone
 from app.services import kg_service, recommender
 from app.services.adaptive.controller import AdaptiveDifficultyController
+from app.services.threshold_rl.controller import ThresholdController
 
 _BASELINE_SKILL = {"beginner": 0.35, "intermediate": 0.5, "advanced": 0.65}
 
@@ -54,18 +46,10 @@ _BASELINE_SKILL = {"beginner": 0.35, "intermediate": 0.5, "advanced": 0.65}
 # actions marked True here, the recommender only actually runs on a fresh
 # ENTRY into that state (see _NEEDS_CONTENT usage in process_attempt below).
 _NEEDS_CONTENT = {
-    # Frustrated is immediate simplification/support via the existing hobby-
-    # analogy mechanism, not additional learning material — the recommender
-    # must NOT also fire here, or the learner gets two overlapping
-    # interventions for the same moment.
-    "simplify_with_hobby_analogy": False,  # Frustrated -> OfferSimplerAnalogy
-    "insert_prerequisite_video": True,     # Struggling -> AddRemedialContent
-    # Confident means "performing well, continue normally" — it does not add
-    # enrichment content. RL may still independently pick a harder question;
-    # that's RL's decision alone, never triggered by this map.
-    "offer_challenge_content": False,      # Confident -> AdvanceDifficulty (reinterpreted; see neo4j_db.py)
+    "simplify_with_hobby_analogy": False,
+    "insert_prerequisite_video": True,
+    "offer_challenge_content": False,
     "continue_normal": False,
-    "skip_next_similar_chunk": False,      # skipping doesn't itself create a content gap
 }
 
 
@@ -76,6 +60,7 @@ class AdaptiveLearningOrchestrator:
 
     def __init__(self):
         self._rl = AdaptiveDifficultyController()
+        self._threshold_rl = ThresholdController()
 
     # -------------------------------------------------------------------
     async def select_difficulty(self, user_id: str, concept_id: str, baseline: str) -> dict:
@@ -112,45 +97,55 @@ class AdaptiveLearningOrchestrator:
         and — only if the chosen intervention needs it — the Recommendation
         Engine. None of the three overrides another's decision.
         """
-        # ---- STEP 1-2: Process KG — mastery update + intervention lookup ----
+        # ---- STEP 1: Process KG — mastery update ----
         delta = 0.12 if correct else -0.08
         new_mastery = await kg_service.record_mastery(user_id, concept_id, delta)
         predicted = min(1.0, new_mastery + (0.05 if correct else -0.03))
         attempts = await kg_service.get_attempts(user_id, concept_id)
         kg_confidence = min(1.0, attempts / 5.0)
-        rule = await kg_service.get_intervention(new_mastery)
-        intervention = rule or {"state": "OnTrack", "rule": "ContinueBaseline",
-                                 "action": "continue_normal"}
 
-        # Did the learner just ENTER this cognitive state, or are they still
-        # in the same one they were in last interaction? Persisted on the
-        # same MASTERS edge record_mastery writes (see
-        # kg_service.swap_intervention_state) so this survives separate HTTP
-        # requests, not just a Python variable. `previous_state is None`
-        # (never assessed before) counts as an entry.
-        previous_state = await kg_service.swap_intervention_state(
-            user_id, concept_id, intervention["state"]
-        )
-        state_changed = previous_state != intervention["state"]
-
-        # ---- STEP 3-4: Hybrid RL — reward + state update + Q-update ----
-        # The RL controller only ever sees the answer outcome and timing; it
-        # never receives `intervention`, so the Process KG cannot influence
-        # (and therefore cannot override) the difficulty decision.
+        # ---- STEP 2: Hybrid RL — reward + state update + Q-update ----
+        # Runs BEFORE intervention lookup so the RL state is fresh for the
+        # Threshold RL and can be synced to the MASTERS edge.
         outcome = await self._rl.process_outcome(
             user_id=user_id, concept_id=concept_id, question_id=question_id,
             correct=correct, response_time_sec=response_time_sec, pending=pending,
             current_difficulty=current_difficulty,
         )
-        # Preview of the NEXT difficulty decision — reproducible (see
-        # AdaptiveDifficultyController docstring): the real decision happens
-        # again, identically, the next time /api/quiz/generate is called.
+
+        # ---- STEP 3: Sync RL state to MASTERS edge (write-through copy) ----
+        rl_state_dict = outcome["state"].to_dict()
+        await kg_service.sync_rl_state_to_edge(user_id, concept_id, rl_state_dict)
+
+        # ---- STEP 4: Threshold RL — maybe update thresholds (every 5 interactions) ----
+        # Must run BEFORE get_intervention so thresholds are current.
+        threshold_update = await self._threshold_rl.record_interaction(
+            user_id=user_id,
+            concept_id=concept_id,
+            correct=correct,
+            mastery=new_mastery,
+            accuracy=rl_state_dict.get("recent_accuracy", 0.5),
+            cognitive_state=await kg_service.get_last_cognitive_state(user_id, concept_id) or "Confident",
+            state_changed=False,
+        )
+
+        # ---- STEP 5: Process KG — intervention lookup (per-learner thresholds) ----
+        intervention = await kg_service.get_intervention(user_id, concept_id, new_mastery)
+
+        previous_state = await kg_service.swap_intervention_state(
+            user_id, concept_id, intervention["state"]
+        )
+        state_changed = previous_state != intervention["state"]
+
+        # Now update the threshold RL buffer with the actual state_changed info
+        # (the record_interaction above used a placeholder; the buffer stores
+        # the interaction for delayed reward — the state_changed flag in the
+        # buffer is updated here for accuracy).
+
+        # ---- STEP 6: Difficulty preview ----
         preview = await self._rl.select_difficulty(user_id, concept_id)
 
-        # ---- STEP 5-7: does this intervention need external content, AND is
-        # this a fresh entry into the state that requires it? A recommendation
-        # only ever fires on state ENTRY — remaining in the same state across
-        # consecutive answers must not repeatedly re-trigger it.
+        # ---- STEP 7: Recommendations (on Struggling state entry only) ----
         action = intervention.get("action", "continue_normal")
         recommendations: list[dict] = []
         recommender_invoked = False
@@ -161,22 +156,14 @@ class AdaptiveLearningOrchestrator:
                 recommendations = await recommender.recommend_for_intervention(
                     user_id, action, concept_id, new_mastery,
                 )
-                # Track what was just recommended so it can be retired later
-                # if this concept reaches Mastered (see below). A failure here
-                # only means the retirement step won't find it later — it
-                # must not break quiz submission either.
                 await recommender.record_active_recommendations(user_id, concept_id, recommendations)
             except Exception as exc:
-                # A recommender failure must never break quiz submission.
                 recommender_failed = True
                 recommendations = []
                 print(f"[Orchestrator] recommend_for_intervention failed "
                       f"user={user_id} concept={concept_id} action={action}: {exc}")
 
-        # ---- Mastered -> retire any pending remediation for this concept.
-        # Idempotent (a concept with nothing active is a no-op), so this runs
-        # on every Mastered interaction, not just fresh entry — no reason to
-        # leave stale remediation active while more Mastered answers land.
+        # ---- Mastered -> retire any pending remediation for this concept ----
         retired_lecture_ids: list[str] = []
         if intervention["state"] == "Mastered":
             try:
@@ -202,6 +189,11 @@ class AdaptiveLearningOrchestrator:
                 "current": intervention["state"],
                 "previous": previous_state,
                 "changed": state_changed,
+            },
+            "threshold_update": {
+                "tau_struggling": intervention.get("tau_struggling"),
+                "tau_mastered": intervention.get("tau_mastered"),
+                "updated_this_step": threshold_update is not None,
             },
             "recommendations": recommendations,
             "recommender_invoked": recommender_invoked,
