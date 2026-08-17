@@ -170,11 +170,6 @@ PAL's per-answer adaptation is four independent subsystems composed by one thin,
 | Recommendation Engine | "Which content resource(s) satisfy that intervention, if any?" | [`backend/app/services/recommender.py`](backend/app/services/recommender.py) |
 | Orchestrator | Sequences the four above and composes one response | [`backend/app/services/pal_agent.py`](backend/app/services/pal_agent.py) |
 
-```
-<img width="546" height="335" alt="Screenshot 2026-08-16 at 11 57 43 PM" src="https://github.com/user-attachments/assets/6ecd9eff-e321-4a2b-8a0e-d467724c68ef" />
-
-```
-
 ### Immediate answer feedback (independent of the orchestrator)
 
 `explanation` (fixed at question-creation time) and, for wrong answers only, a hobby-flavoured `analogy` are generated directly in `routes/quiz.py`'s `/submit` handler — never inside the orchestrator, and never gated on Process KG state or video playback. Every incorrect answer gets an analogy attempt regardless of which cognitive state it happens to land in; an LLM failure here returns `None` rather than blocking submission.
@@ -213,44 +208,8 @@ PAL's difficulty selection implements the Hybrid Reinforcement Learning algorith
 
 ### Architecture
 
-```
-Learner interaction
-        |
-        v
-  Learner State x_t
-        |
-   +----+----------------------+
-   |                           |
-   v                           v
-Statistical Prior          RL Policy (Q-learning)
-p_stat(d|x_t)               p_RL(d|x_t)
-   |                           |
-   +----------+----------------+
-              v
-        Hybrid Policy
-   pi_t(d|x_t) = (1-w_t)p_stat + w_t*p_RL
-              |
-              v
-      Difficulty Decision (Easy / Medium / Hard)
-              |
-        +-----+------------------------+
-        |                              |
-        v                              v
-  Question generation (LLM)     Process KG intervention
-  (difficulty-scaled prompt)    (remedial / analogy / challenge)
-        |                              |
-        v                              |
-   Learner Response  <------------------
-        |
-        v
-  Reward r_t + State Update x_{t+1}
-        |
-        v
-  Q-learning update: Q(s,a) <- Q(s,a) + alpha[r_t + gamma*max_a'Q(s',a') - Q(s,a)]
-        |
-        v
-  x_{t+1} synced to the MASTERS edge -> also feeds Threshold RL's state
-```
+<img width="1536" height="1024" alt="architecture" src="https://github.com/user-attachments/assets/f78297e5-287c-4271-9b6f-58f2dc2bc529" />
+
 
 The RL controller owns **difficulty selection only**. The Process KG owns **pedagogical interventions** (`OfferSimplerAnalogy`, `AddRemedialContent`, `OnTrackContinue`, `MasteredChallenge`) based on mastery, classified against thresholds the Threshold RL tunes per learner (see "Threshold RL" above). All three engines are independent, composed by `AdaptiveLearningOrchestrator.process_attempt` (see "Adaptive Learning Architecture" above).
 
