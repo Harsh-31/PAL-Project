@@ -171,35 +171,8 @@ PAL's per-answer adaptation is four independent subsystems composed by one thin,
 | Orchestrator | Sequences the four above and composes one response | [`backend/app/services/pal_agent.py`](backend/app/services/pal_agent.py) |
 
 ```
-Learner answers a question
-        |
-        v
-+-------------------------+       +---------------------------+
-| Immediate Feedback      |       | Mastery Updater            |
-| (routes/quiz.py — NOT   |       | record_mastery(+0.12/-0.08)|
-| the orchestrator)       |       +-------------+---------------+
-| - explanation (fixed)   |                     |
-| - analogy, wrong only   |                     v
-+-------------------------+       +---------------------------+
-                                  | AdaptiveLearningOrchestrator|
-                                  | - difficulty  <- Hybrid RL  |
-                                  | - sync RL state -> KG edge  |
-                                  | - maybe retune tau_s/tau_m  |
-                                  |   <- Threshold RL (every 5) |
-                                  | - state       <- Process KG |
-                                  |   (mastery vs. this        |
-                                  |    learner's tau_s/tau_m)   |
-                                  | - detects state ENTRY       |
-                                  | - if entry needs content ->|
-                                  |   Recommendation Engine     |
-                                  | - if Mastered -> retire     |
-                                  |   pending remediation       |
-                                  +----+-----------------+-----+
-                                       |                 |
-                                       v                 v
-                              Hybrid RL (Q-learning   Process KG
-                              + IRT prior) picks      (Struggling/OnTrack/
-                              next difficulty         Mastered)
+<img width="546" height="335" alt="Screenshot 2026-08-16 at 11 57 43 PM" src="https://github.com/user-attachments/assets/6ecd9eff-e321-4a2b-8a0e-d467724c68ef" />
+
 ```
 
 ### Immediate answer feedback (independent of the orchestrator)
