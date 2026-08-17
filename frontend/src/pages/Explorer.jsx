@@ -70,7 +70,7 @@ export default function Explorer() {
           <tbody>
             {[
               ['Struggling', 'OfferSimplerAnalogy + AddRemedialContent', 'mastery < τ_struggling', 'simplify_with_hobby_analogy, insert_prerequisite_video'],
-              ['Confident',  'ConfidentContinue',   'τ_struggling ≤ mastery < τ_mastered', 'continue_normal'],
+              ['OnTrack',    'OnTrackContinue',      'τ_struggling ≤ mastery < τ_mastered', 'continue_normal'],
               ['Mastered',   'MasteredChallenge',    'mastery ≥ τ_mastered', 'offer_challenge_content'],
             ].map(row => (
               <tr key={row[0]} style={{ borderTop: '1px solid var(--border)' }}>

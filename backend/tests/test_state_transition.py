@@ -2,7 +2,9 @@
 Recommendation Engine must only run on ENTRY into a content-requiring
 Process-KG cognitive state (e.g. OnTrack -> Struggling), never merely because
 the learner remains in that state across consecutive answers
-(Struggling -> Struggling).
+(Struggling -> Struggling), and never merely because Struggling's specific
+firing rule changes (OfferSimplerAnalogy <-> AddRemedialContent) while the
+state itself doesn't change.
 
 Two layers are tested:
   1. kg_service.swap_intervention_state() itself — the real function, against
@@ -49,16 +51,21 @@ def _patch_rl(monkeypatch, action: Difficulty, legacy_difficulty: int):
     monkeypatch.setattr(AdaptiveDifficultyController, "process_outcome", _returns(outcome))
 
 
-FRUSTRATED = {"state": "Frustrated", "rule": "OfferSimplerAnalogy",
-              "action": "simplify_with_hobby_analogy", "thr": 0.4}
+# Struggling has two real production rules (see neo4j_db._seed_process_kg):
+# OfferSimplerAnalogy (priority 0) and AddRemedialContent (priority 1). Both
+# fixtures below share the same "state": "Struggling" — only the rule/action
+# differ — since that's what the real Process KG can actually return for this
+# state. STRUGGLING is the one used by most tests here (least disruptive to
+# existing assertions); STRUGGLING_ANALOGY is used where a test specifically
+# needs the non-content-requiring analogy rule instead.
 STRUGGLING = {"state": "Struggling", "rule": "AddRemedialContent",
               "action": "insert_prerequisite_video", "thr": 0.55}
-ONTRACK = {"state": "OnTrack", "rule": "ContinueBaseline",
+STRUGGLING_ANALOGY = {"state": "Struggling", "rule": "OfferSimplerAnalogy",
+                       "action": "simplify_with_hobby_analogy", "thr": 0.4}
+ONTRACK = {"state": "OnTrack", "rule": "OnTrackContinue",
            "action": "continue_normal", "thr": 0.7}
-CONFIDENT = {"state": "Confident", "rule": "AdvanceDifficulty",
-             "action": "offer_challenge_content", "thr": 0.85}
-MASTERED = {"state": "Mastered", "rule": "SkipRedundant",
-            "action": "skip_next_similar_chunk", "thr": 0.95}
+MASTERED = {"state": "Mastered", "rule": "MasteredChallenge",
+            "action": "offer_challenge_content", "thr": 0.95}
 
 
 # ---------------------------------------------------------------------------
@@ -136,8 +143,8 @@ def test_swap_intervention_state_is_scoped_per_learner_and_concept(monkeypatch):
 
     _run(kg_service.swap_intervention_state("u1", "c1", "Struggling"))
     # A different learner (or a different concept) has its own independent history.
-    other_learner = _run(kg_service.swap_intervention_state("u2", "c1", "Confident"))
-    other_concept = _run(kg_service.swap_intervention_state("u1", "c2", "Confident"))
+    other_learner = _run(kg_service.swap_intervention_state("u2", "c1", "Mastered"))
+    other_concept = _run(kg_service.swap_intervention_state("u1", "c2", "Mastered"))
 
     assert other_learner is None
     assert other_concept is None
@@ -168,17 +175,35 @@ def test_1_ontrack_to_struggling_triggers_recommendation(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Frustrated: analogy support only, recommender must NEVER fire for it —
-# even on a fresh state entry. This is the one state where "needs a
-# pedagogical response" and "needs the Recommendation Engine" diverge: the
-# existing hobby-analogy mechanism already serves this moment.
+# Struggling has two real rules (OfferSimplerAnalogy, AddRemedialContent).
+# The analogy rule is the one state where "needs a pedagogical response" and
+# "needs the Recommendation Engine" diverge: the existing hobby-analogy
+# mechanism already serves this moment, so the recommender must NEVER fire
+# for it — not even on a fresh entry into Struggling, and not when the
+# learner merely moves between the two Struggling rules without the
+# cognitive state itself changing.
+#
+# NOTE: under the old (obsolete) 5-state model, "Frustrated" and "Struggling"
+# were two separate cognitive states and moving between them counted as a
+# real state transition. In the current 3-state model both rules live under
+# the single "Struggling" state, so that specific transition no longer
+# exists; the tests below were adapted to the closest still-meaningful real
+# scenarios (see the per-test docstrings). A pure "same-state-persists"
+# analogy-rule variant would have been a byte-for-byte duplicate of
+# test_2_struggling_to_struggling_does_not_retrigger below and was removed.
 # ---------------------------------------------------------------------------
 
-def test_ontrack_to_frustrated_uses_analogy_without_recommender(monkeypatch):
+def test_ontrack_to_struggling_with_analogy_rule_uses_analogy_without_recommender(monkeypatch):
+    """Fresh entry into Struggling where the primary (priority-0) rule that
+    fires is OfferSimplerAnalogy rather than AddRemedialContent — the
+    recommender must not fire, even though this IS a state entry. Complements
+    test_1_ontrack_to_struggling_triggers_recommendation, which uses the
+    AddRemedialContent rule and DOES expect the recommender to fire — proving
+    the gate is keyed on the specific action, not just "entered Struggling"."""
     _patch_rl(monkeypatch, Difficulty.EASY, 2)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.35))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(2))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(FRUSTRATED))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(STRUGGLING_ANALOGY))
     monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("OnTrack"))
     invoked = []
 
@@ -195,7 +220,7 @@ def test_ontrack_to_frustrated_uses_analogy_without_recommender(monkeypatch):
     ))
 
     # Cognitive state genuinely changed (a fresh entry)...
-    assert result["cognitive_state"] == {"current": "Frustrated", "previous": "OnTrack", "changed": True}
+    assert result["cognitive_state"] == {"current": "Struggling", "previous": "OnTrack", "changed": True}
     # ...the analogy intervention is preserved and reported...
     assert result["intervention"]["action"] == "simplify_with_hobby_analogy"
     assert result["intervention"]["rule"] == "OfferSimplerAnalogy"
@@ -205,40 +230,16 @@ def test_ontrack_to_frustrated_uses_analogy_without_recommender(monkeypatch):
     assert invoked == []
 
 
-def test_frustrated_to_frustrated_does_not_trigger_recommender(monkeypatch):
-    _patch_rl(monkeypatch, Difficulty.EASY, 2)
-    monkeypatch.setattr(kg_service, "record_mastery", _returns(0.30))
-    monkeypatch.setattr(kg_service, "get_attempts", _returns(3))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(FRUSTRATED))
-    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Frustrated"))
-    invoked = []
-
-    async def spy(*a, **kw):
-        invoked.append(1)
-        return []
-
-    monkeypatch.setattr(recommender, "recommend_for_intervention", spy)
-
-    orch = AdaptiveLearningOrchestrator()
-    result = _run(orch.process_attempt(
-        user_id="u1", concept_id="c1", correct=False, current_difficulty=2,
-        question_id="qf2", response_time_sec=5.0, pending=PENDING,
-    ))
-
-    assert result["cognitive_state"]["changed"] is False
-    assert result["recommender_invoked"] is False
-    assert invoked == []
-
-
-def test_frustrated_to_struggling_now_invokes_remedial_recommender(monkeypatch):
-    """Once the learner moves OUT of Frustrated and INTO Struggling, that's a
-    fresh entry into a content-requiring state — the recommender must fire,
-    exactly once, for the remedial (not analogy) content strategy."""
+def test_mastered_to_struggling_now_invokes_remedial_recommender(monkeypatch):
+    """A big regression straight from Mastered into Struggling (skipping
+    OnTrack entirely) is still a fresh entry into a content-requiring state —
+    the recommender must fire, exactly once, for the remedial (not analogy)
+    content strategy."""
     _patch_rl(monkeypatch, Difficulty.MEDIUM, 3)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.45))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(4))
     monkeypatch.setattr(kg_service, "get_intervention", _returns(STRUGGLING))
-    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Frustrated"))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Mastered"))
     fake_recs = [{"lecture_id": "remedial-x"}]
     calls = []
 
@@ -254,18 +255,20 @@ def test_frustrated_to_struggling_now_invokes_remedial_recommender(monkeypatch):
         question_id="qf3", response_time_sec=5.0, pending=PENDING,
     ))
 
-    assert result["cognitive_state"] == {"current": "Struggling", "previous": "Frustrated", "changed": True}
+    assert result["cognitive_state"] == {"current": "Struggling", "previous": "Mastered", "changed": True}
     assert result["recommender_invoked"] is True
     assert calls == ["insert_prerequisite_video"]
     assert result["recommendations"] == fake_recs
 
 
-def test_struggling_to_frustrated_uses_analogy_without_recommender(monkeypatch):
+def test_mastered_to_struggling_with_analogy_uses_analogy_without_recommender(monkeypatch):
+    """Same big regression (Mastered -> Struggling), but the analogy rule
+    fires instead of the remedial one — recommender must stay silent."""
     _patch_rl(monkeypatch, Difficulty.EASY, 2)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.38))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(5))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(FRUSTRATED))
-    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Struggling"))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(STRUGGLING_ANALOGY))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Mastered"))
     invoked = []
 
     async def spy(*a, **kw):
@@ -280,20 +283,21 @@ def test_struggling_to_frustrated_uses_analogy_without_recommender(monkeypatch):
         question_id="qf4", response_time_sec=5.0, pending=PENDING,
     ))
 
-    assert result["cognitive_state"] == {"current": "Frustrated", "previous": "Struggling", "changed": True}
+    assert result["cognitive_state"] == {"current": "Struggling", "previous": "Mastered", "changed": True}
     assert result["intervention"]["action"] == "simplify_with_hobby_analogy"
     assert result["recommender_invoked"] is False
     assert invoked == []
 
 
-def test_rl_difficulty_independent_when_frustrated(monkeypatch):
+def test_rl_difficulty_independent_when_struggling_with_analogy(monkeypatch):
     """RL keeps choosing whatever it chooses (HARD here, deliberately) even
-    while the learner is in Frustrated — Frustrated must not suppress,
-    override, or otherwise couple to the difficulty decision."""
+    while the learner is in Struggling via the analogy rule — the
+    intervention must not suppress, override, or otherwise couple to the
+    difficulty decision."""
     _patch_rl(monkeypatch, Difficulty.HARD, 4)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.30))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(2))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(FRUSTRATED))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(STRUGGLING_ANALOGY))
     monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("OnTrack"))
     monkeypatch.setattr(recommender, "recommend_for_intervention", _returns([]))
 
@@ -303,7 +307,7 @@ def test_rl_difficulty_independent_when_frustrated(monkeypatch):
         question_id="qf5", response_time_sec=5.0, pending=PENDING,
     ))
 
-    assert result["next_difficulty"] == 4  # RL's own choice, unaffected by Frustrated
+    assert result["next_difficulty"] == 4  # RL's own choice, unaffected by the analogy rule
     assert result["intervention"]["action"] == "simplify_with_hobby_analogy"
     assert result["recommender_invoked"] is False
 
@@ -359,14 +363,19 @@ def test_3_struggling_to_ontrack_resets_without_recommendation(monkeypatch):
     assert invoked == []
 
 
-def test_5_ontrack_to_confident_does_not_trigger_recommender(monkeypatch):
-    """Test F (final policy): Confident is entered fresh, but must NOT
-    trigger the Recommendation Engine or any enrichment content. RL still
-    independently selects difficulty."""
+def test_5_ontrack_to_mastered_does_not_trigger_recommender(monkeypatch):
+    """Test F (final policy): Mastered is entered fresh, but must NOT
+    trigger the Recommendation Engine or any enrichment content — it offers
+    challenge content directly, not via the Recommendation Engine. RL still
+    independently selects difficulty.
+
+    (Under the old 5-state model this scenario was "OnTrack -> Confident";
+    Confident's role — the tier reached from OnTrack that offers challenge
+    content — is what Mastered does in the current 3-state model.)"""
     _patch_rl(monkeypatch, Difficulty.HARD, 4)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.78))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(5))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(CONFIDENT))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(MASTERED))
     monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("OnTrack"))
     invoked = []
 
@@ -382,21 +391,21 @@ def test_5_ontrack_to_confident_does_not_trigger_recommender(monkeypatch):
         question_id="q4", response_time_sec=5.0, pending=PENDING,
     ))
 
-    assert result["cognitive_state"] == {"current": "Confident", "previous": "OnTrack", "changed": True}
+    assert result["cognitive_state"] == {"current": "Mastered", "previous": "OnTrack", "changed": True}
     assert result["recommender_invoked"] is False
     assert result["recommendations"] == []
     assert invoked == []
     assert result["next_difficulty"] == 4  # RL still independently controls difficulty
 
 
-def test_6_confident_repeated_three_times_zero_recommender_calls(monkeypatch):
-    """Test G: Confident -> Confident -> Confident. Zero recommendation calls
+def test_6_mastered_repeated_three_times_zero_recommender_calls(monkeypatch):
+    """Test G: Mastered -> Mastered -> Mastered. Zero recommendation calls
     and zero enrichment content across all three interactions."""
     _patch_rl(monkeypatch, Difficulty.HARD, 4)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.80))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(6))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(CONFIDENT))
-    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Confident"))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(MASTERED))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Mastered"))
     invoked = []
 
     async def spy(*a, **kw):
@@ -419,13 +428,14 @@ def test_6_confident_repeated_three_times_zero_recommender_calls(monkeypatch):
 
 
 def test_7_rl_and_kg_independence_survives_state_gating(monkeypatch):
-    """Test H: Process KG says Confident (state just entered) while Hybrid RL
-    independently selects EASY. Neither overrides the other; Confident
-    triggers no enrichment recommendation either way."""
+    """Test H: Process KG says Mastered (state just entered) while Hybrid RL
+    independently selects EASY. Neither overrides the other; Mastered
+    triggers no enrichment recommendation either way (it offers challenge
+    content directly, not via the Recommendation Engine)."""
     _patch_rl(monkeypatch, Difficulty.EASY, 2)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.90))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(7))
-    monkeypatch.setattr(kg_service, "get_intervention", _returns(CONFIDENT))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(MASTERED))
     monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("OnTrack"))
     invoked = []
 
@@ -444,7 +454,7 @@ def test_7_rl_and_kg_independence_survives_state_gating(monkeypatch):
     assert result["next_difficulty"] == 2  # EASY — RL's own choice, unmodified
     assert result["intervention"]["action"] == "offer_challenge_content"  # KG's own choice, unmodified
     assert result["cognitive_state"]["changed"] is True
-    assert result["recommender_invoked"] is False  # Confident never triggers content
+    assert result["recommender_invoked"] is False  # Mastered never triggers content via the recommender
     assert invoked == []
 
 
@@ -530,14 +540,21 @@ def test_4_and_8_full_transition_sequence_across_separate_calls(monkeypatch):
     assert invocations == ["insert_prerequisite_video", "insert_prerequisite_video"]
 
 
-def test_frustrated_struggling_sequence_across_separate_calls(monkeypatch):
-    """The exact Frustrated<->Struggling narrative from the spec:
-    Frustrated -> Struggling (now invoke remedial) and Struggling ->
-    Frustrated (analogy applies, recommender NOT invoked) — each step an
-    independent orchestrator call against the same persisted kg_state."""
+def test_struggling_analogy_remedial_alternation_sequence_across_separate_calls(monkeypatch):
+    """Struggling has two real rules (AddRemedialContent, OfferSimplerAnalogy).
+    This proves the recommender gate is keyed on the cognitive STATE changing,
+    not on which of Struggling's two rules currently fires: OnTrack ->
+    Struggling (remedial rule, triggers) -> Struggling (analogy rule now
+    fires instead, but the state itself hasn't changed -> no retrigger) ->
+    Struggling (analogy rule persists -> still no recommendation). Each step
+    is an independent orchestrator call against the same persisted kg_state.
+
+    (Under the old 5-state model this was the Frustrated<->Struggling
+    narrative; in the current 3-state model both rules live under the single
+    Struggling state, so switching between them is not a state transition.)"""
     _patch_rl(monkeypatch, Difficulty.EASY, 2)
     kg_state = _SequentialKGState()
-    kg_state.store[("u1", "c1")] = "Frustrated"  # learner's state before this sequence begins
+    kg_state.store[("u1", "c1")] = "OnTrack"  # learner's state before this sequence begins
     monkeypatch.setattr(kg_service, "swap_intervention_state", kg_state.swap)
     monkeypatch.setattr(kg_service, "get_attempts", _returns(1))
 
@@ -559,19 +576,21 @@ def test_frustrated_struggling_sequence_across_separate_calls(monkeypatch):
             question_id="q", response_time_sec=5.0, pending=PENDING,
         ))
 
-    # Step 1: Frustrated -> Struggling — a real content-requiring entry, triggers.
+    # Step 1: OnTrack -> Struggling (remedial rule) — a real content-requiring entry, triggers.
     r1 = _attempt(0.45, STRUGGLING)
-    assert r1["cognitive_state"] == {"current": "Struggling", "previous": "Frustrated", "changed": True}
+    assert r1["cognitive_state"] == {"current": "Struggling", "previous": "OnTrack", "changed": True}
     assert r1["recommender_invoked"] is True
 
-    # Step 2: Struggling -> Frustrated — analogy support applies, recommender NOT invoked.
-    r2 = _attempt(0.38, FRUSTRATED)
-    assert r2["cognitive_state"] == {"current": "Frustrated", "previous": "Struggling", "changed": True}
+    # Step 2: Struggling -> Struggling, but the analogy rule fires instead of
+    # the remedial one. The cognitive state itself did not change, so no
+    # retrigger — regardless of which rule/action is currently returned.
+    r2 = _attempt(0.38, STRUGGLING_ANALOGY)
+    assert r2["cognitive_state"]["changed"] is False
     assert r2["intervention"]["action"] == "simplify_with_hobby_analogy"
     assert r2["recommender_invoked"] is False
 
-    # Step 3: Frustrated -> Frustrated — still no recommendation.
-    r3 = _attempt(0.33, FRUSTRATED)
+    # Step 3: Struggling (analogy) persists — still no recommendation.
+    r3 = _attempt(0.33, STRUGGLING_ANALOGY)
     assert r3["cognitive_state"]["changed"] is False
     assert r3["recommender_invoked"] is False
 

@@ -20,7 +20,7 @@ their outputs into one response. Process KG never overrides the RL difficulty
 decision, and RL never decides an intervention. See README "Hybrid Reinforcement
 Learning Adaptation" and the Process KG docs for each subsystem's own detail.
 
-The Process KG uses 3 cognitive states (Struggling, Confident, Mastered)
+The Process KG uses 3 cognitive states (Struggling, OnTrack, Mastered)
 with per-learner thresholds (tau_struggling, tau_mastered) learned by a
 separate Threshold RL.  Recommendations trigger on STATE ENTRY into
 Struggling only.  Mastered triggers offer_challenge_content (harder
@@ -125,7 +125,7 @@ class AdaptiveLearningOrchestrator:
             correct=correct,
             mastery=new_mastery,
             accuracy=rl_state_dict.get("recent_accuracy", 0.5),
-            cognitive_state=await kg_service.get_last_cognitive_state(user_id, concept_id) or "Confident",
+            cognitive_state=await kg_service.get_last_cognitive_state(user_id, concept_id) or "OnTrack",
             state_changed=False,
         )
 

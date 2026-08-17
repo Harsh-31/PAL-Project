@@ -67,8 +67,8 @@ async def _seed_process_kg() -> None:
             ("OfferSimplerAnalogy", "simplify_with_hobby_analogy"),
             ("AddRemedialContent", "insert_prerequisite_video"),
         ]),
-        ("Confident", [
-            ("ConfidentContinue", "continue_normal"),
+        ("OnTrack", [
+            ("OnTrackContinue", "continue_normal"),
         ]),
         ("Mastered", [
             ("MasteredChallenge", "offer_challenge_content"),
@@ -79,7 +79,7 @@ async def _seed_process_kg() -> None:
         await s.run(
             """
             MATCH (st:CognitiveState)
-            WHERE st.name IN ['Frustrated', 'OnTrack']
+            WHERE st.name IN ['Frustrated', 'Confident']
             OPTIONAL MATCH (st)-[t:TRIGGERS]->(r:InterventionRule)
             DETACH DELETE st
             WITH r WHERE r IS NOT NULL
@@ -95,13 +95,14 @@ async def _seed_process_kg() -> None:
             """
         )
         for state, actions in rules:
-            for rule, action in actions:
+            for priority, (rule, action) in enumerate(actions):
                 await s.run(
                     """
                     MERGE (st:CognitiveState {name:$state})
                     MERGE (r:InterventionRule {name:$rule})
                       SET r.action=$action
-                    MERGE (st)-[:TRIGGERS]->(r)
+                    MERGE (st)-[t:TRIGGERS]->(r)
+                      SET t.priority=$priority
                     """,
-                    state=state, rule=rule, action=action,
+                    state=state, rule=rule, action=action, priority=priority,
                 )

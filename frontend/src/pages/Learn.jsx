@@ -202,10 +202,10 @@ export default function Learn() {
     // The only "positive" action we honour on correct is skip-forward when mastered.
     //
     // All toast text below is deliberately plain, pedagogical language — it
-    // must never expose internal Process KG state names (Frustrated/
-    // Struggling/OnTrack/Confident/Mastered), rule/action identifiers,
-    // thresholds, or recommendation-engine terminology to the learner. The
-    // `action` string itself is only ever used as an internal switch key.
+    // must never expose internal Process KG state names (Struggling/
+    // OnTrack/Mastered), rule/action identifiers, thresholds, or
+    // recommendation-engine terminology to the learner. The `action` string
+    // itself is only ever used as an internal switch key.
     if (wasCorrect) {
       if (action === 'skip_next_similar_chunk') {
         const chunks = activeLecture?.chunks || [];

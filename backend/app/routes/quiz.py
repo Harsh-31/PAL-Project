@@ -71,7 +71,7 @@ async def generate(payload: QuizRequest, user=Depends(current_user)):
 
     cognitive_state = await kg_service.get_last_cognitive_state(
         user["id"], concept["id"]
-    ) or "Confident"
+    ) or "OnTrack"
 
     q = await ollama.generate_mcq(
         concept_name=concept["name"],

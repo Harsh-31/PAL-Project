@@ -355,7 +355,11 @@ async def get_all_mastery(user_id: str, course_id: str) -> list[dict]:
 
 
 async def get_intervention(user_id: str, concept_id: str, mastery: float) -> dict:
-    """Classify the learner into a cognitive state using per-learner thresholds.
+    """Classify the learner into a cognitive state using per-learner thresholds,
+    then resolve that state into an action by traversing the Process KG —
+    (CognitiveState)-[:TRIGGERS]->(InterventionRule) — instead of duplicating
+    the state->action mapping as a Python dict. The state->action mapping now
+    lives only in the graph (seeded once in neo4j_db._seed_process_kg).
 
     Thresholds (tau_struggling, tau_mastered) are stored on the MASTERS edge
     and learned by the Threshold RL.  Falls back to global defaults when no
@@ -373,31 +377,26 @@ async def get_intervention(user_id: str, concept_id: str, mastery: float) -> dic
         tau_s = rec["tau_s"] if rec else 0.40
         tau_m = rec["tau_m"] if rec else 0.85
 
-    if mastery < tau_s:
-        state = "Struggling"
-    elif mastery >= tau_m:
-        state = "Mastered"
-    else:
-        state = "Confident"
+        if mastery < tau_s:
+            state = "Struggling"
+        elif mastery >= tau_m:
+            state = "Mastered"
+        else:
+            state = "OnTrack"
 
-    actions_map = {
-        "Struggling": [
-            {"rule": "OfferSimplerAnalogy", "action": "simplify_with_hobby_analogy"},
-            {"rule": "AddRemedialContent", "action": "insert_prerequisite_video"},
-        ],
-        "Confident": [
-            {"rule": "ConfidentContinue", "action": "continue_normal"},
-        ],
-        "Mastered": [
-            {"rule": "MasteredChallenge", "action": "offer_challenge_content"},
-        ],
-    }
-    rules = actions_map[state]
+        r2 = await s.run(
+            """MATCH (st:CognitiveState {name:$state})-[t:TRIGGERS]->(rule:InterventionRule)
+               RETURN rule.name AS rule, rule.action AS action
+               ORDER BY t.priority""",
+            state=state,
+        )
+        rules = [dict(row) async for row in r2]
+
     return {
         "state": state,
         "rule": rules[0]["rule"],
         "action": rules[0]["action"],
-        "all_actions": [r["action"] for r in rules],
+        "all_actions": [row["action"] for row in rules],
         "tau_struggling": tau_s,
         "tau_mastered": tau_m,
     }

@@ -107,7 +107,7 @@ def test_rl_difficulty_survives_kg_challenge_intervention(monkeypatch):
     never override it, and its own intervention must still fire unmodified."""
     _patch_rl(monkeypatch, Difficulty.EASY, 2)
     _patch_kg(monkeypatch, new_mastery=0.9, intervention={
-        "state": "Confident", "rule": "AdvanceDifficulty",
+        "state": "Mastered", "rule": "MasteredChallenge",
         "action": "offer_challenge_content", "thr": 0.85,
     })
     monkeypatch.setattr(recommender, "recommend_for_intervention", _returns([]))
@@ -120,7 +120,7 @@ def test_rl_difficulty_survives_kg_challenge_intervention(monkeypatch):
 
     assert result["next_difficulty"] == 2  # EASY — from RL, unmodified
     assert result["intervention"]["action"] == "offer_challenge_content"  # KG's own decision, also unmodified
-    assert result["intervention"]["rule"] == "AdvanceDifficulty"
+    assert result["intervention"]["rule"] == "MasteredChallenge"
 
 
 def test_select_difficulty_never_consults_kg_intervention_or_recommender(monkeypatch):
@@ -204,10 +204,13 @@ def test_continue_does_not_invoke_recommender(monkeypatch):
     assert invoked == []
 
 
-def test_skip_does_not_invoke_recommender(monkeypatch):
+def test_mastered_challenge_does_not_invoke_recommender(monkeypatch):
+    """Mastered no longer 'skips' content (that rule was retired) — it offers
+    challenge content instead, and that action must still never invoke the
+    Recommendation Engine."""
     _patch_rl(monkeypatch, Difficulty.HARD, 4)
     _patch_kg(monkeypatch, new_mastery=0.97, intervention={
-        "state": "Mastered", "rule": "SkipRedundant", "action": "skip_next_similar_chunk", "thr": 0.95,
+        "state": "Mastered", "rule": "MasteredChallenge", "action": "offer_challenge_content", "thr": 0.95,
     })
     monkeypatch.setattr(recommender, "recommend_for_intervention", _returns(["should not be reached"]))
 
@@ -219,17 +222,17 @@ def test_skip_does_not_invoke_recommender(monkeypatch):
 
     assert result["recommendations"] == []
     assert result["recommender_invoked"] is False
-    assert result["intervention"]["action"] == "skip_next_similar_chunk"
+    assert result["intervention"]["action"] == "offer_challenge_content"
 
 
-def test_confident_never_invokes_recommender_while_rl_stays_independent(monkeypatch):
-    """Final policy: Confident means 'performing well, continue normally' —
+def test_ontrack_never_invokes_recommender_while_rl_stays_independent(monkeypatch):
+    """Final policy: OnTrack means 'performing well, continue normally' —
     it must NOT trigger enrichment content, even on a fresh state entry.
     RL still independently keeps choosing difficulty (HARD here, arbitrarily)."""
     _patch_rl(monkeypatch, Difficulty.HARD, 4)
     _patch_kg(monkeypatch, new_mastery=0.8, intervention={
-        "state": "Confident", "rule": "AdvanceDifficulty",
-        "action": "offer_challenge_content", "thr": 0.85,
+        "state": "OnTrack", "rule": "OnTrackContinue",
+        "action": "continue_normal", "thr": 0.85,
     })
     invoked = []
 

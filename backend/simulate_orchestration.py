@@ -5,8 +5,8 @@ the integration spec: struggling / competent / mastered / high-performing learne
 Uses the REAL orchestrator (app.services.pal_agent.AdaptiveLearningOrchestrator)
 and the REAL Hybrid RL controller (backed by an in-memory fake Mongo, so this
 runs standalone with no live database). The Process KG is replaced by a
-faithful in-memory reproduction of the exact same 5-rule table seeded in
-app/database/neo4j_db.py (same thresholds, same actions) — this avoids
+faithful in-memory reproduction of the exact same 3-state/4-rule table seeded
+in app/database/neo4j_db.py (same thresholds, same actions) — this avoids
 requiring a live Neo4j connection while keeping the KG's actual decision logic
 under test. The Recommendation Engine is replaced by a canned stub, since real
 recommendations require live Neo4j concept embeddings — but the orchestrator's
@@ -22,30 +22,54 @@ import random
 
 from app.services import kg_service, recommender
 from app.services.adaptive import persistence as persistence_module
+from app.services.threshold_rl import persistence as threshold_persistence_module
 from app.services.pal_agent import AdaptiveLearningOrchestrator
 
 N_QUESTIONS = 8
 
-# The exact rule table from app/database/neo4j_db.py::_seed_process_kg,
+# The exact 3-state/4-rule table from app/database/neo4j_db.py::_seed_process_kg,
 # reproduced here so the simulation doesn't need a live Neo4j connection.
-_KG_RULES = [
-    ("Frustrated", "OfferSimplerAnalogy", 0.40, "simplify_with_hobby_analogy"),
-    ("Struggling", "AddRemedialContent", 0.55, "insert_prerequisite_video"),
-    ("OnTrack", "ContinueBaseline", 0.70, "continue_normal"),
-    ("Confident", "AdvanceDifficulty", 0.85, "offer_challenge_content"),
-    ("Mastered", "SkipRedundant", 0.95, "skip_next_similar_chunk"),
-]
+# Classification mirrors kg_service.get_intervention: mastery < tau_struggling
+# -> Struggling; mastery >= tau_mastered -> Mastered; else -> OnTrack. Struggling
+# has two rules ordered by priority (OfferSimplerAnalogy is primary/priority 0,
+# AddRemedialContent is priority 1); OnTrack and Mastered each have one rule.
+# Mastered no longer skips content (the old SkipRedundant/skip_next_similar_chunk
+# rule was retired) — it now offers challenge content, same as old-Confident did.
+_TAU_STRUGGLING = 0.40
+_TAU_MASTERED = 0.85
+_KG_RULES: dict[str, list[tuple[str, str]]] = {
+    "Struggling": [
+        ("OfferSimplerAnalogy", "simplify_with_hobby_analogy"),
+        ("AddRemedialContent", "insert_prerequisite_video"),
+    ],
+    "OnTrack": [
+        ("OnTrackContinue", "continue_normal"),
+    ],
+    "Mastered": [
+        ("MasteredChallenge", "offer_challenge_content"),
+    ],
+}
 
 
 class FakeKG:
     """In-memory stand-in for kg_service, faithful to the real Cypher logic in
     record_mastery/get_intervention/swap_intervention_state — no Neo4j
-    required for this demo."""
+    required for this demo.
+
+    Also stands in for the handful of kg_service functions that exist purely
+    to support the newer Threshold RL / RL-state-mirroring features
+    (sync_rl_state_to_edge, get_last_cognitive_state, get_thresholds,
+    get_rl_state_from_edge, update_thresholds) — process_attempt calls all of
+    these unconditionally, so they need faithful in-memory equivalents too."""
 
     def __init__(self):
         self.mastery = 0.5
         self.attempts = 0
         self.last_kg_state = None  # mirrors MASTERS.last_kg_state
+        self.tau_struggling = _TAU_STRUGGLING
+        self.tau_mastered = _TAU_MASTERED
+        self.tau_timestep = 0
+        self.rl_state_edge: dict | None = None
 
     async def get_mastery(self, user_id, concept_id):
         return self.mastery
@@ -58,18 +82,57 @@ class FakeKG:
     async def get_attempts(self, user_id, concept_id):
         return self.attempts
 
-    async def get_intervention(self, mastery):
-        candidates = [(thr, state, rule, action) for state, rule, thr, action in _KG_RULES
-                      if mastery <= thr]
-        if not candidates:
-            return None
-        thr, state, rule, action = min(candidates, key=lambda c: c[0])
-        return {"state": state, "rule": rule, "action": action, "thr": thr}
+    async def get_intervention(self, user_id, concept_id, mastery):
+        if mastery < self.tau_struggling:
+            state = "Struggling"
+        elif mastery >= self.tau_mastered:
+            state = "Mastered"
+        else:
+            state = "OnTrack"
+        rules = _KG_RULES[state]
+        rule, action = rules[0]
+        return {
+            "state": state,
+            "rule": rule,
+            "action": action,
+            "all_actions": [a for _, a in rules],
+            "tau_struggling": self.tau_struggling,
+            "tau_mastered": self.tau_mastered,
+        }
 
     async def swap_intervention_state(self, user_id, concept_id, new_state):
         previous = self.last_kg_state
         self.last_kg_state = new_state
         return previous
+
+    async def get_last_cognitive_state(self, user_id, concept_id):
+        return self.last_kg_state
+
+    async def sync_rl_state_to_edge(self, user_id, concept_id, rl_state: dict) -> None:
+        """Mirrors kg_service.sync_rl_state_to_edge's field mapping."""
+        self.rl_state_edge = {
+            "rl_skill": rl_state.get("skill", 0.5),
+            "rl_recent_accuracy": rl_state.get("recent_accuracy", 0.5),
+            "rl_normalized_response_time": rl_state.get("normalized_response_time", 0.5),
+            "rl_streak_momentum": rl_state.get("streak_momentum", 0.0),
+            "rl_learning_velocity": rl_state.get("learning_velocity", 0.0),
+            "rl_confidence": rl_state.get("confidence", 0.5),
+        }
+
+    async def get_rl_state_from_edge(self, user_id, concept_id):
+        return self.rl_state_edge
+
+    async def get_thresholds(self, user_id, concept_id):
+        return {
+            "tau_struggling": self.tau_struggling,
+            "tau_mastered": self.tau_mastered,
+            "tau_timestep": self.tau_timestep,
+        }
+
+    async def update_thresholds(self, user_id, concept_id, tau_struggling, tau_mastered, tau_timestep):
+        self.tau_struggling = tau_struggling
+        self.tau_mastered = tau_mastered
+        self.tau_timestep = tau_timestep
 
 
 class FakeDB:
@@ -177,11 +240,23 @@ async def run_scenario(name: str, cfg: dict, seed: int) -> None:
 
     # Monkeypatch the module-level functions the orchestrator calls — this is
     # a standalone script (not pytest), so we patch and restore manually.
+    # This also covers the kg_service functions that only exist to support the
+    # Threshold RL / RL-state-mirroring path (sync_rl_state_to_edge,
+    # get_last_cognitive_state, get_thresholds, get_rl_state_from_edge,
+    # update_thresholds) and the Threshold RL's own Mongo persistence module,
+    # so the whole process_attempt() call graph runs with no live database.
     orig = {
         "get_mastery": kg_service.get_mastery, "record_mastery": kg_service.record_mastery,
         "get_attempts": kg_service.get_attempts, "get_intervention": kg_service.get_intervention,
         "swap_intervention_state": kg_service.swap_intervention_state,
+        "get_last_cognitive_state": kg_service.get_last_cognitive_state,
+        "sync_rl_state_to_edge": kg_service.sync_rl_state_to_edge,
+        "get_thresholds": kg_service.get_thresholds,
+        "get_rl_state_from_edge": kg_service.get_rl_state_from_edge,
+        "update_thresholds": kg_service.update_thresholds,
         "get_db": persistence_module.get_db,
+        "threshold_get_db": threshold_persistence_module.get_db,
+        "recommender_get_db": recommender.get_db,
         "recommend_for_intervention": recommender.recommend_for_intervention,
     }
     kg_service.get_mastery = fake_kg.get_mastery
@@ -189,7 +264,14 @@ async def run_scenario(name: str, cfg: dict, seed: int) -> None:
     kg_service.get_attempts = fake_kg.get_attempts
     kg_service.get_intervention = fake_kg.get_intervention
     kg_service.swap_intervention_state = fake_kg.swap_intervention_state
+    kg_service.get_last_cognitive_state = fake_kg.get_last_cognitive_state
+    kg_service.sync_rl_state_to_edge = fake_kg.sync_rl_state_to_edge
+    kg_service.get_thresholds = fake_kg.get_thresholds
+    kg_service.get_rl_state_from_edge = fake_kg.get_rl_state_from_edge
+    kg_service.update_thresholds = fake_kg.update_thresholds
     persistence_module.get_db = lambda: fake_db
+    threshold_persistence_module.get_db = lambda: fake_db
+    recommender.get_db = lambda: fake_db
     recommender.recommend_for_intervention = _fake_recommend_for_intervention
 
     try:
@@ -232,7 +314,14 @@ async def run_scenario(name: str, cfg: dict, seed: int) -> None:
         kg_service.get_attempts = orig["get_attempts"]
         kg_service.get_intervention = orig["get_intervention"]
         kg_service.swap_intervention_state = orig["swap_intervention_state"]
+        kg_service.get_last_cognitive_state = orig["get_last_cognitive_state"]
+        kg_service.sync_rl_state_to_edge = orig["sync_rl_state_to_edge"]
+        kg_service.get_thresholds = orig["get_thresholds"]
+        kg_service.get_rl_state_from_edge = orig["get_rl_state_from_edge"]
+        kg_service.update_thresholds = orig["update_thresholds"]
         persistence_module.get_db = orig["get_db"]
+        threshold_persistence_module.get_db = orig["threshold_get_db"]
+        recommender.get_db = orig["recommender_get_db"]
         recommender.recommend_for_intervention = orig["recommend_for_intervention"]
 
 

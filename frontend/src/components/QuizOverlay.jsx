@@ -65,10 +65,9 @@ export default function QuizOverlay({ lectureId, chunk, onClose }) {
   };
 
   // Learner-facing pedagogical messages — deliberately plain-language, never
-  // mentioning internal Process KG state names (Frustrated/Struggling/
-  // OnTrack/Confident/Mastered), rule names, thresholds, or the
-  // recommendation engine. `rule` is only ever used here as an internal
-  // lookup key, never displayed.
+  // mentioning internal Process KG state names (Struggling/OnTrack/
+  // Mastered), rule names, thresholds, or the recommendation engine.
+  // `rule` is only ever used here as an internal lookup key, never displayed.
   const interventionText = (rule) => {
     const map = {
       OfferSimplerAnalogy: "Let's look at this another way.",
@@ -110,8 +109,7 @@ export default function QuizOverlay({ lectureId, chunk, onClose }) {
             </div>
             {/* Immediate wrong-answer feedback — independent of Process KG
                 state and video playback; always readable right here whenever
-                present, regardless of Frustrated/Struggling/OnTrack/
-                Confident/Mastered. */}
+                present, regardless of Struggling/OnTrack/Mastered. */}
             {!result.correct && result.analogy && (
               <div className="quiz-analogy" style={{
                 borderLeft: '3px solid var(--primary)', paddingLeft: 10,

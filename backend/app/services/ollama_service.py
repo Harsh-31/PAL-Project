@@ -58,45 +58,99 @@ class OllamaService:
         chunk_summary: str,
         difficulty: int,
         hobbies: list[str],
-        cognitive_state: str = "Confident",
+        cognitive_state: str = "OnTrack",
     ) -> dict:
-        """Adaptive MCQ generation — difficulty-scaled, cognitive-state-aware."""
+        """Adaptive MCQ generation.
+
+        Difficulty (Hybrid RL) and cognitive state (Process KG) have
+        deliberately separate, non-overlapping responsibilities in this
+        prompt: difficulty is the sole authority over how hard the question
+        and distractors are; cognitive state only ever affects how the
+        question is presented (language, scaffolding). Cognitive state must
+        never be able to raise or lower the requested difficulty — see the
+        explicit "DO NOT" lines in STATE_GUIDANCE below, and the authority
+        statement in both the system and user prompts.
+        """
         system = (
             "You are PAL, an adaptive tutor. Generate exactly ONE multiple-choice question "
             "that tests understanding of the specified concept. "
+            "The requested difficulty level is authoritative: it was selected by the Hybrid RL "
+            "policy and must be met exactly. Learner cognitive state may affect presentation and "
+            "scaffolding, but MUST NOT override the requested difficulty. "
             "Output STRICT JSON only, no prose, no markdown, no code fences. "
             "Schema: {\"question\": str, \"options\": [str,str,str,str], "
             "\"correct_index\": int (0-3), \"explanation\": str}."
         )
+        difficulty_levels = {
+            1: (
+                "- Direct recall / recognition.\n"
+                "- Straightforward reasoning.\n"
+                "- Clearly distinguishable distractors.\n"
+            ),
+            2: (
+                "- Basic conceptual understanding.\n"
+                "- One-step reasoning.\n"
+                "- Moderately plausible distractors.\n"
+            ),
+            3: (
+                "- Application of the concept.\n"
+                "- Multi-step or comparative reasoning where appropriate.\n"
+                "- Plausible distractors.\n"
+            ),
+            4: (
+                "- Deeper application / analysis.\n"
+                "- Subtle conceptual distinctions.\n"
+                "- Strong plausible distractors.\n"
+            ),
+            5: (
+                "- Advanced application / synthesis / edge-case reasoning.\n"
+                "- High conceptual precision.\n"
+                "- Challenging plausible distractors.\n"
+            ),
+        }
         state_guidance = {
             "Struggling": (
-                "- The learner is STRUGGLING: use simple, clear language. "
-                "Scaffold the question with helpful context. "
-                "Make distractors obviously wrong so the learner can build confidence.\n"
+                "- Use simple, clear sentence structure.\n"
+                "- Provide sufficient context in the question itself.\n"
+                "- Avoid unnecessary linguistic complexity.\n"
+                "- Make the task being asked explicit.\n"
+                "- Do NOT make distractors easier or more obviously wrong because of this state.\n"
+                "- Do NOT reduce conceptual difficulty below the requested level.\n"
             ),
-            "Confident": (
-                "- The learner is performing well: use standard academic phrasing. "
-                "Distractors should be plausible but distinguishable.\n"
+            "OnTrack": (
+                "- Use standard academic phrasing.\n"
+                "- Normal level of scaffolding.\n"
             ),
             "Mastered": (
-                "- The learner has MASTERED this concept: use advanced application questions. "
-                "Require cross-concept synthesis or edge-case reasoning. "
-                "Distractors should be tricky and require careful thought.\n"
+                "- Use concise, domain-appropriate academic phrasing.\n"
+                "- Minimal scaffolding.\n"
+                "- Do NOT increase difficulty beyond the requested level.\n"
+                "- Do NOT automatically introduce cross-concept synthesis unless the requested "
+                "difficulty level above already calls for it.\n"
             ),
         }
         user = (
             f"Concept: {concept_name}\n"
             f"Lecture chunk summary: {chunk_summary}\n"
-            f"Difficulty (1-5): {difficulty}\n"
-            f"Learner cognitive state: {cognitive_state}\n"
-            "Rules:\n"
-            f"{state_guidance.get(cognitive_state, state_guidance['Confident'])}"
+            "\n"
+            f"Requested difficulty: {difficulty}/5 — selected by Hybrid RL, authoritative.\n"
+            f"{difficulty_levels.get(difficulty, difficulty_levels[3])}"
+            "\n"
+            f"Learner cognitive state: {cognitive_state} — from Process KG, presentation guidance only.\n"
+            f"{state_guidance.get(cognitive_state, state_guidance['OnTrack'])}"
+            "\n"
+            "A learner may legitimately be e.g. difficulty=5 + Struggling, or difficulty=2 + Mastered — "
+            "these are not contradictions. Difficulty describes what level of reasoning is required; "
+            "cognitive state describes how that question should be presented. Never let cognitive "
+            "state change what difficulty level above requires.\n"
+            "\n"
+            "Additional rules:\n"
             "- The question and all options must be phrased in direct, domain-appropriate language.\n"
             "- Do NOT reference sports, movies, hobbies, or everyday analogies in the question or options.\n"
             "- Exactly 4 options.\n"
-            "- Exactly one clearly correct answer; the other three should be plausible distractors.\n"
-            "- Explanation should be one crisp sentence justifying the correct answer.\n"
-            "- Higher difficulty = trickier distractors and more precise wording."
+            "- Exactly one clearly correct answer; the other three should be plausible distractors "
+            "matching the requested difficulty level above.\n"
+            "- Explanation should be one to two crisp sentences justifying the correct answer."
         )
         raw = await self._chat(system, user, json_mode=True)
         data = self._safe_json(raw, {
