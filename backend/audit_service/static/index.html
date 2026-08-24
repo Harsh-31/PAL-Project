@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAL Traceability Audit</title>
+<style>
+  :root {
+    --bg:#0f1117; --panel:#171a21; --panel2:#1d212a; --line:#2a2f3a;
+    --fg:#e6e8ee; --muted:#9aa3b2; --accent:#6aa8ff; --accent2:#8b7bff;
+    --ok:#3ecf8e; --bad:#ff6b6b; --warn:#ffb84d; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  header{display:flex;align-items:center;gap:16px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.2px}
+  header .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 7px;border-radius:99px}
+  #health{margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 49px)}
+  aside{background:var(--panel);border-right:1px solid var(--line);padding:14px;overflow-y:auto;max-height:calc(100vh - 49px)}
+  main{padding:18px 22px;overflow-x:hidden}
+  input,select,button{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:7px 10px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  .userrow{padding:9px 10px;border:1px solid transparent;border-radius:8px;cursor:pointer;margin-bottom:4px}
+  .userrow:hover{background:var(--panel2)}
+  .userrow.sel{background:var(--panel2);border-color:var(--accent)}
+  .userrow .nm{font-weight:600}
+  .userrow .em{font-size:12px;color:var(--muted)}
+  .userrow .ct{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+  .pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+  .pill.z{opacity:.45}
+  h2{font-size:18px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:12px;font-family:var(--mono);margin-bottom:14px}
+  .cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 14px;min-width:110px}
+  .card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .card .v{font-size:20px;font-weight:650;font-family:var(--mono)}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:8px 13px;cursor:pointer;border-radius:7px 7px 0 0;color:var(--muted);border:1px solid transparent;border-bottom:none;font-size:13px}
+  .tab:hover{color:var(--fg)}
+  .tab.on{color:var(--fg);background:var(--panel);border-color:var(--line);font-weight:600}
+  .bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:var(--panel2);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);position:sticky;top:0}
+  tbody tr:hover{background:var(--panel2)}
+  tbody tr.click{cursor:pointer}
+  td.mono,th.mono{font-family:var(--mono);font-size:12px}
+  .yes{color:var(--ok);font-weight:600}.no{color:var(--bad);font-weight:600}
+  .st-Struggling{color:var(--bad)}.st-OnTrack{color:var(--accent)}.st-Mastered{color:var(--ok)}
+  .chain{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:16px 0}
+  .step{flex:1 1 190px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px;margin-right:22px;position:relative;min-width:190px}
+  .step:last-child{margin-right:0}
+  .step::after{content:"→";position:absolute;right:-19px;top:50%;transform:translateY(-50%);color:var(--accent2);font-size:17px}
+  .step:last-child::after{content:""}
+  .step .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent2);margin-bottom:6px;font-weight:700}
+  .step .big{font-size:17px;font-weight:650;font-family:var(--mono);margin-bottom:4px;white-space:normal;word-break:break-word}
+  .step .det{font-size:12px;color:var(--muted);font-family:var(--mono);white-space:normal;word-break:break-word}
+  .sec{margin:18px 0 8px;font-size:13px;font-weight:650;color:var(--fg);text-transform:uppercase;letter-spacing:.5px}
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px}
+  .kv dt{color:var(--muted)}
+  .kv dd{margin:0;font-family:var(--mono);word-break:break-all}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-top:12px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px}
+  pre{font-family:var(--mono);font-size:12px;overflow-x:auto;background:#0b0d12;padding:12px;border-radius:7px;margin:10px 0 0;border:1px solid var(--line)}
+  .empty{color:var(--muted);padding:26px;text-align:center;border:1px dashed var(--line);border-radius:9px}
+  .err{color:var(--bad);background:#2a1518;border:1px solid #4a2226;padding:10px 13px;border-radius:8px;margin-bottom:12px;white-space:pre-wrap}
+  .back{background:none;border:none;color:var(--accent);padding:0;margin-bottom:10px}
+  .note{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>PAL Traceability Audit</h1>
+  <span class="tag">read-only</span>
+  <span class="tag">standalone · not the learner app</span>
+  <input id="token" placeholder="audit token (only if AUDIT_TOKEN set)" style="width:230px;font-size:12px">
+  <span id="health">checking…</span>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="bar">
+      <input id="search" placeholder="Search name or email…" style="flex:1">
+    </div>
+    <div id="users"></div>
+  </aside>
+  <main id="main"><div class="empty">Pick a learner on the left to inspect their decision trail.</div></main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let USER = null, TAB = 'attempts', CONCEPT = '', OVERVIEW = null;
+
+const tokenHeaders = () => {
+  const t = $('#token').value.trim();
+  return t ? {'X-Audit-Token': t} : {};
+};
+
+async function api(path) {
+  const r = await fetch(path, {headers: tokenHeaders()});
+  const body = await r.json().catch(() => ({detail: r.statusText}));
+  if (!r.ok) throw new Error(typeof body.detail === 'string'
+      ? body.detail : JSON.stringify(body.detail, null, 2));
+  return body;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = (v, d=3) => (v === null || v === undefined || v === '') ? '—'
+  : (typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(d)) : esc(v));
+const ts = v => v ? esc(String(v).replace('T',' ').slice(0,19)) : '—';
+const bool = v => v === true ? '<span class="yes">✓</span>'
+  : v === false ? '<span class="no">✗</span>' : '—';
+const state = s => s ? `<span class="st-${esc(s)}">${esc(s)}</span>` : '—';
+const json = o => `<pre>${esc(JSON.stringify(o, null, 2))}</pre>`;
+
+// ---------- health ----------
+(async () => {
+  try {
+    const h = await api('/api/health');
+    $('#health').innerHTML = `mongo:${esc(h.mongo_db)} · neo4j:${h.neo4j.startsWith('connected')
+      ? '<span class="yes">up</span>' : '<span class="no">down</span>'} · `
+      + `${h.collections.quiz_attempts} attempts · ${h.collections.threshold_decisions} τ-decisions`;
+  } catch (e) { $('#health').innerHTML = `<span class="no">${esc(e.message)}</span>`; }
+})();
+
+// ---------- users ----------
+async function loadUsers() {
+  const q = $('#search').value.trim();
+  try {
+    const {users} = await api('/api/users' + (q ? `?q=${encodeURIComponent(q)}` : ''));
+    $('#users').innerHTML = users.length ? users.map(u => {
+      const c = u.counts;
+      const z = c.quiz_attempts ? '' : ' z';
+      return `<div class="userrow${USER === u.id ? ' sel' : ''}" data-id="${esc(u.id)}">
+        <div class="nm">${esc(u.name || '(no name)')}</div>
+        <div class="em">${esc(u.email || '')}</div>
+        <div class="ct"><span class="pill${z}">${c.quiz_attempts} attempts</span>
+          <span class="pill${c.threshold_decisions ? '' : ' z'}">${c.threshold_decisions} τ</span>
+          <span class="pill${c.rl_decisions ? '' : ' z'}">${c.rl_decisions} rl</span></div>
+      </div>`;
+    }).join('') : '<div class="empty">No learners match.</div>';
+    $('#users').querySelectorAll('.userrow').forEach(el =>
+      el.onclick = () => selectUser(el.dataset.id));
+  } catch (e) { $('#users').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+let t; $('#search').oninput = () => { clearTimeout(t); t = setTimeout(loadUsers, 200); };
+loadUsers();
+
+async function selectUser(id) {
+  USER = id; CONCEPT = ''; TAB = 'attempts';
+  document.querySelectorAll('.userrow').forEach(el =>
+    el.classList.toggle('sel', el.dataset.id === id));
+  $('#main').innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    OVERVIEW = await api(`/api/users/${encodeURIComponent(id)}`);
+    render();
+  } catch (e) { $('#main').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+
+// ---------- shell ----------
+const TABS = [['attempts','Attempts'],['threshold','Threshold RL'],
+              ['rl','Hybrid RL'],['timeline','Timeline'],['kg','Live KG']];
+
+function render() {
+  const o = OVERVIEW, u = o.user, t = o.totals;
+  $('#main').innerHTML = `
+    <h2>${esc(u.name || '(no name)')}</h2>
+    <div class="sub">${esc(u.email || '')} · id ${esc(u.id)}${
+      u.goal ? ' · goal: ' + esc(u.goal) : ''}${
+      u.hobbies?.length ? ' · hobbies: ' + esc(u.hobbies.join(', ')) : ''}</div>
+    <div class="cards">
+      <div class="card"><div class="k">Attempts</div><div class="v">${t.quiz_attempts}</div></div>
+      <div class="card"><div class="k">τ-decisions</div><div class="v">${t.threshold_decisions}</div></div>
+      <div class="card"><div class="k">RL decisions</div><div class="v">${t.rl_decisions}</div></div>
+      <div class="card"><div class="k">Concepts</div><div class="v">${t.concepts}</div></div>
+    </div>
+    ${t.quiz_attempts === 0 ? `<div class="err">This learner has no recorded attempts yet — nothing to trace.
+Take at least one quiz as ${esc(u.email || u.name)} in the PAL app, then reload.</div>` : ''}
+    <div class="tabs">${TABS.map(([k,l]) =>
+      `<div class="tab${TAB===k?' on':''}" data-tab="${k}">${l}</div>`).join('')}</div>
+    <div class="bar">
+      <label style="color:var(--muted);font-size:12px">Concept</label>
+      <select id="concept"><option value="">All concepts</option>${
+        o.concepts.map(c => `<option value="${esc(c.concept_id)}"${
+          CONCEPT===c.concept_id?' selected':''}>${esc(c.concept_name || c.concept_id)} (${c.attempts})</option>`
+        ).join('')}</select>
+      <button id="reload">Reload</button>
+    </div>
+    <div id="panel"><div class="empty">Loading…</div></div>`;
+
+  $('#main').querySelectorAll('.tab').forEach(el => el.onclick = () => {
+    TAB = el.dataset.tab; render();
+  });
+  $('#concept').onchange = e => { CONCEPT = e.target.value; loadPanel(); };
+  $('#reload').onclick = () => selectUser(USER);
+  loadPanel();
+}
+
+const cq = () => CONCEPT ? `?concept_id=${encodeURIComponent(CONCEPT)}` : '';
+
+async function loadPanel() {
+  const p = $('#panel');
+  p.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    if (TAB === 'attempts')  return p.innerHTML = renderAttempts(
+      await api(`/api/users/${USER}/attempts${cq()}${CONCEPT?'&':'?'}limit=200`)), wireAttempts();
+    if (TAB === 'threshold') return p.innerHTML = renderThreshold(
+      await api(`/api/users/${USER}/threshold-decisions${cq()}`));
+    if (TAB === 'rl')        return p.innerHTML = renderRL(
+      await api(`/api/users/${USER}/rl-decisions${cq()}`));
+    if (TAB === 'timeline')  return p.innerHTML = renderTimeline(
+      await api(`/api/users/${USER}/timeline${cq()}`));
+    if (TAB === 'kg')        return p.innerHTML = renderKG(
+      await api(`/api/users/${USER}/kg${cq()}`));
+  } catch (e) { p.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+
+// ---------- attempts ----------
+function renderAttempts(d) {
+  if (!d.attempts.length) return '<div class="empty">No attempts recorded.</div>';
+  return `<div class="note">${d.total} attempt(s). Click a row for the full decision pathway.</div>
+  <div class="scroll"><table><thead><tr>
+    <th>When</th><th>OK</th><th>Diff</th><th>Mastery</th><th>τ-strug</th><th>τ-mast</th>
+    <th>State</th><th>Changed</th><th>Rule</th><th>Action</th><th>Next</th><th>Question</th>
+  </tr></thead><tbody>${d.attempts.map(a => `
+    <tr class="click" data-q="${esc(a.question_id)}">
+      <td class="mono">${ts(a.timestamp)}</td>
+      <td>${bool(a.correct)}</td>
+      <td class="mono">${num(a.difficulty)}</td>
+      <td class="mono">${num(a.mastery)}</td>
+      <td class="mono">${num(a.tau_struggling,2)}</td>
+      <td class="mono">${num(a.tau_mastered,2)}</td>
+      <td>${state(a.cognitive_state)}</td>
+      <td>${a.state_changed ? '<span class="yes">↻</span>' : '·'}</td>
+      <td class="mono">${esc(a.rule || '—')}</td>
+      <td class="mono">${esc(a.action || '—')}</td>
+      <td class="mono">${num(a.next_difficulty)}</td>
+      <td class="mono">${esc((a.question_id||'').slice(0,8))}…</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+function wireAttempts() {
+  $('#panel').querySelectorAll('tr.click').forEach(tr =>
+    tr.onclick = () => showPathway(tr.dataset.q));
+}
+
+// ---------- pathway ----------
+async function showPathway(qid) {
+  const p = $('#panel');
+  p.innerHTML = '<div class="empty">Loading pathway…</div>';
+  try {
+    const d = await api(`/api/users/${USER}/pathway/${encodeURIComponent(qid)}`);
+    const m = d.mastery, th = d.thresholds, cs = d.cognitive_state || {}, iv = d.intervention || {};
+    p.innerHTML = `
+      <button class="back" id="back">← back to attempts</button>
+      <h2 style="font-size:16px">Decision pathway</h2>
+      <div class="sub">${esc(d.concept_name || d.concept_id)} · ${ts(d.timestamp)} ·
+        answer ${d.correct ? '<span class="yes">correct</span>' : '<span class="no">incorrect</span>'}
+        · difficulty ${num(d.difficulty)} · ${num(d.time_taken_sec,1)}s</div>
+
+      <div class="chain">
+        <div class="step"><div class="lbl">1 · Mastery</div>
+          <div class="big">${num(m.after)}</div>
+          <div class="det">from ${num(m.before)}<br>predicted ${num(m.predicted)}<br>confidence ${num(m.confidence)}</div></div>
+        <div class="step"><div class="lbl">2 · Thresholds</div>
+          <div class="big">${num(th.tau_struggling,2)} / ${num(th.tau_mastered,2)}</div>
+          <div class="det">τ-struggling / τ-mastered<br>tau_timestep ${num(th.tau_timestep)}<br>
+            updated this step: ${th.updated_this_step ? 'yes' : 'no'}</div></div>
+        <div class="step"><div class="lbl">3 · Cognitive state</div>
+          <div class="big">${state(cs.current)}</div>
+          <div class="det">previous: ${esc(cs.previous ?? '—')}<br>
+            changed: ${cs.changed ? 'yes — gate open' : 'no — gate closed'}</div></div>
+        <div class="step"><div class="lbl">4 · Process-KG rule</div>
+          <div class="big">${esc(iv.rule || '—')}</div>
+          <div class="det">${(iv.all_actions||[]).length>1
+            ? 'candidates: ' + esc(iv.all_actions.join(', ')) : 'single rule for this state'}</div></div>
+        <div class="step"><div class="lbl">5 · Action</div>
+          <div class="big">${esc(iv.action || '—')}</div>
+          <div class="det">${d.recommender_invoked
+            ? `recommender ran → ${d.recommendations.length} item(s)`
+            : 'recommender not invoked'}${d.recommender_failed?'<br><span class="no">recommender failed</span>':''}</div></div>
+      </div>
+
+      <div class="sec">Why this state</div>
+      <div class="kv">
+        <dt>Rule applied</dt><dd>mastery ${num(m.after)}
+          ${m.after < th.tau_struggling ? `&lt; τ-struggling ${num(th.tau_struggling,2)} → Struggling`
+            : m.after >= th.tau_mastered ? `≥ τ-mastered ${num(th.tau_mastered,2)} → Mastered`
+            : `∈ [${num(th.tau_struggling,2)}, ${num(th.tau_mastered,2)}) → OnTrack`}</dd>
+        <dt>Recommendation gate</dt><dd>${cs.changed
+          ? 'state changed → content actions allowed to fire'
+          : 'state unchanged → suppressed (no repeat recommendations)'}</dd>
+        <dt>Next difficulty</dt><dd>${num(d.next_difficulty)} (Hybrid RL preview)</dd>
+        <dt>Reflection</dt><dd>${esc(d.reflection || '—')}</dd>
+      </div>
+
+      <div class="sec">Threshold-RL link (TRACE-03)</div>
+      <div class="kv">
+        <dt>decision_ref</dt><dd>${esc(th.decision_ref || '— none stored')}</dd>
+        <dt>Resolved via</dt><dd>${esc(th.decision_ref_resolution)}</dd>
+      </div>
+      ${th.threshold_decision ? `<div class="scroll" style="margin-top:10px"><table><thead><tr>
+        <th>τ-step</th><th>mastery →</th><th>accuracy →</th><th>τ-strug →</th><th>act</th>
+        <th>τ-mast →</th><th>act</th><th>reward</th></tr></thead><tbody><tr>
+        <td class="mono">${num(th.threshold_decision.tau_timestep)}</td>
+        <td class="mono">${num(th.threshold_decision.mastery_before)} → ${num(th.threshold_decision.mastery_after)}</td>
+        <td class="mono">${num(th.threshold_decision.accuracy_before)} → ${num(th.threshold_decision.accuracy_after)}</td>
+        <td class="mono">${num(th.threshold_decision.tau_struggling_before,2)} → ${num(th.threshold_decision.tau_struggling_after,2)}</td>
+        <td class="mono">${esc(th.threshold_decision.action_struggling)}</td>
+        <td class="mono">${num(th.threshold_decision.tau_mastered_before,2)} → ${num(th.threshold_decision.tau_mastered_after,2)}</td>
+        <td class="mono">${esc(th.threshold_decision.action_mastered)}</td>
+        <td class="mono">${num((th.threshold_decision.reward||{}).total)}</td>
+      </tr></tbody></table></div>`
+      : '<div class="note">No threshold decision linked to this interaction (the Threshold RL only fires every 5 interactions).</div>'}
+
+      ${d.recommendations.length ? `<div class="sec">Recommendations produced</div>
+      <div class="scroll"><table><thead><tr><th>Lecture</th><th>Concept</th><th>Score</th><th>Reason</th></tr></thead>
+      <tbody>${d.recommendations.map(r => `<tr>
+        <td class="mono">${esc(r.lecture_id || r.chunk_id || '—')}</td>
+        <td class="mono">${esc(r.concept_id || r.concept || '—')}</td>
+        <td class="mono">${num(r.score)}</td><td>${esc(r.reason || r.why || '—')}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
+
+      <div class="sec">Hybrid-RL difficulty provenance</div>
+      ${renderRLBlock(d.rl)}
+
+      <details><summary>Raw orchestrator trace (JSON)</summary>${json(d.raw_trace)}</details>
+      <details><summary>Linked Hybrid-RL decision record (JSON)</summary>${
+        d.rl_decision_record ? json(d.rl_decision_record) : '<div class="note">None stored for this question.</div>'}</details>
+      <details><summary>Full pathway response (JSON)</summary>${json(d)}</details>`;
+    $('#back').onclick = loadPanel;
+  } catch (e) { p.innerHTML = `<button class="back" id="back">← back</button>
+    <div class="err">${esc(e.message)}</div>`, $('#back').onclick = loadPanel; }
+}
+
+function renderRLBlock(rl) {
+  if (!rl) return '<div class="note">No RL block in this trace.</div>';
+  const r = rl.reward || {}, ls = rl.learner_state || {};
+  const probs = p => p ? Object.entries(p).map(([k,v]) => `${k} ${num(v)}`).join(' · ') : '—';
+  return `<div class="kv">
+    <dt>Reward total</dt><dd>${num(r.total)} = acc ${num(r.r_acc)} + time ${num(r.r_time)}
+      + prog ${num(r.r_prog)} + mom ${num(r.r_mom)}</dd>
+    <dt>Q-value</dt><dd>${num(rl.q_value_before)} → ${num(rl.q_value_after)}</dd>
+    <dt>Next action</dt><dd>${esc(rl.next_action || '—')}</dd>
+    <dt>p_stat</dt><dd>${probs(rl.next_p_stat)}</dd>
+    <dt>p_rl</dt><dd>${probs(rl.next_p_rl)}</dd>
+    <dt>Blend weight</dt><dd>${num(rl.next_blend_weight)}</dd>
+    <dt>Learner state</dt><dd>t=${num(ls.timestep)} · skill ${num(ls.skill)} ·
+      acc ${num(ls.recent_accuracy)} · streak ${num(ls.current_streak)} ·
+      velocity ${num(ls.learning_velocity)} · confidence ${num(ls.confidence)}</dd>
+  </div>`;
+}
+
+// ---------- threshold RL ----------
+function renderThreshold(d) {
+  if (!d.decisions.length) return `<div class="empty">No Threshold-RL decisions.
+    It fires once every 5 interactions per concept.</div>`;
+  return `<div class="note">${d.count} decision(s), oldest first.</div>
+  <div class="scroll"><table><thead><tr>
+    <th>τ-step</th><th>When</th><th>Concept</th><th>State key</th>
+    <th>mastery →</th><th>accuracy →</th>
+    <th>τ-strug →</th><th>act</th><th>τ-mast →</th><th>act</th>
+    <th>Reward</th><th>Q-strug</th><th>Q-mast</th><th>decision_ref</th>
+  </tr></thead><tbody>${d.decisions.map(x => `<tr>
+    <td class="mono">${num(x.tau_timestep)}</td><td class="mono">${ts(x.timestamp)}</td>
+    <td class="mono">${esc((x.concept_id||'').slice(-28))}</td>
+    <td class="mono">${esc(x.state_key || '—')}</td>
+    <td class="mono">${num(x.mastery_before)} → ${num(x.mastery_after)}</td>
+    <td class="mono">${num(x.accuracy_before)} → ${num(x.accuracy_after)}</td>
+    <td class="mono">${num(x.tau_struggling_before,2)} → ${num(x.tau_struggling_after,2)}</td>
+    <td class="mono">${esc(x.action_struggling)}</td>
+    <td class="mono">${num(x.tau_mastered_before,2)} → ${num(x.tau_mastered_after,2)}</td>
+    <td class="mono">${esc(x.action_mastered)}</td>
+    <td class="mono">${num((x.reward||{}).total)}</td>
+    <td class="mono">${num((x.q_struggling||{}).before)}→${num((x.q_struggling||{}).after)}</td>
+    <td class="mono">${num((x.q_mastered||{}).before)}→${num((x.q_mastered||{}).after)}</td>
+    <td class="mono">${x.decision_ref ? esc(x.decision_ref.slice(0,34))+'…' : '<span class="no">none</span>'}</td>
+  </tr>`).join('')}</tbody></table></div>
+  <details><summary>Raw JSON</summary>${json(d.decisions)}</details>`;
+}
+
+// ---------- hybrid RL ----------
+function renderRL(d) {
+  if (!d.decisions.length) return '<div class="empty">No Hybrid-RL decisions.</div>';
+  return `<div class="note">${d.count} decision(s), oldest first.</div>
+  <div class="scroll"><table><thead><tr>
+    <th>t</th><th>When</th><th>Action</th><th>Reward</th><th>Blend w</th>
+    <th>skill</th><th>acc</th><th>streak</th><th>Question</th>
+  </tr></thead><tbody>${d.decisions.map(x => {
+    const ls = x.learner_state || {};
+    const rw = typeof x.reward === 'object' ? (x.reward||{}).total : x.reward;
+    return `<tr>
+      <td class="mono">${num(x.timestep)}</td><td class="mono">${ts(x.timestamp)}</td>
+      <td class="mono">${esc(x.action || x.selected_action || '—')}</td>
+      <td class="mono">${num(rw)}</td><td class="mono">${num(x.blend_weight)}</td>
+      <td class="mono">${num(ls.skill)}</td><td class="mono">${num(ls.recent_accuracy)}</td>
+      <td class="mono">${num(ls.current_streak)}</td>
+      <td class="mono">${esc((x.question_id||'').slice(0,8))}${x.question_id?'…':''}</td>
+    </tr>`; }).join('')}</tbody></table></div>
+  <details><summary>Raw JSON</summary>${json(d.decisions)}</details>`;
+}
+
+// ---------- timeline ----------
+function renderTimeline(d) {
+  if (!d.events.length) return '<div class="empty">No events.</div>';
+  const label = {attempt:'answer', threshold_decision:'τ-update', rl_decision:'rl-step'};
+  return `<div class="note">${d.count} event(s), newest first — all three logs interleaved.</div>
+  <div class="scroll"><table><thead><tr><th>When</th><th>Kind</th><th>Concept</th><th>Detail</th></tr></thead>
+  <tbody>${d.events.map(e => {
+    const s = e.summary || {};
+    let detail;
+    if (e.kind === 'attempt') detail = `${s.correct?'<span class="yes">correct</span>':'<span class="no">wrong</span>'}
+      · diff ${num(s.difficulty)} · mastery ${num(s.mastery)} · ${state(s.state)}${
+      s.state_changed?' <span class="yes">↻changed</span>':''} · ${esc(s.rule||'')} → ${esc(s.action||'')}`;
+    else if (e.kind === 'threshold_decision') detail = `τ-step ${num(s.tau_timestep)} ·
+      τ-strug ${num((s.tau_struggling||[])[0],2)}→${num((s.tau_struggling||[])[1],2)} (${esc(s.action_struggling)}) ·
+      τ-mast ${num((s.tau_mastered||[])[0],2)}→${num((s.tau_mastered||[])[1],2)} (${esc(s.action_mastered)}) ·
+      reward ${num(s.reward)}`;
+    else detail = `t=${num(s.timestep)} · action ${esc(s.action||'—')} · reward ${num(s.reward)}`;
+    return `<tr><td class="mono">${ts(e.timestamp)}</td>
+      <td><span class="pill">${label[e.kind]||e.kind}</span></td>
+      <td class="mono">${esc((e.concept_id||'').slice(-26))}</td><td>${detail}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+// ---------- live KG ----------
+function renderKG(d) {
+  if (!d.available) return `<div class="err">Neo4j unavailable — ${esc(d.reason)}</div>
+    <div class="note">Mongo-backed traces above still work; only this live-graph view needs Neo4j.</div>`;
+  return `<div class="sec">User KG — MASTERS edges (current values)</div>
+  ${d.note ? `<div class="err">${esc(d.note)}${d.graph_totals
+      ? `\n(graph totals: ${d.graph_totals.learners} Learner node(s), ${d.graph_totals.masters_edges} MASTERS edge(s))` : ''}</div>` : ''}
+  ${d.masters.length ? `<div class="scroll"><table><thead><tr>
+    <th>Concept</th><th>Mastery</th><th>Attempts</th><th>τ-struggling</th><th>τ-mastered</th>
+    <th>τ-step</th><th>Last state</th></tr></thead><tbody>${d.masters.map(m => `<tr>
+    <td class="mono">${esc(m.concept_name || m.concept_id)}</td>
+    <td class="mono">${num(m.mastery)}</td><td class="mono">${num(m.attempts)}</td>
+    <td class="mono">${num(m.tau_struggling,2)}</td><td class="mono">${num(m.tau_mastered,2)}</td>
+    <td class="mono">${num(m.tau_timestep)}</td><td>${state(m.last_state)}</td>
+  </tr>`).join('')}</tbody></table></div>`
+   : '<div class="empty">No MASTERS edges for this learner.</div>'}
+  <div class="sec">Process KG — state → rule → action</div>
+  <div class="scroll"><table><thead><tr><th>State</th><th>Rules → actions</th></tr></thead>
+  <tbody>${d.process_kg.map(p => `<tr><td>${state(p.state)}</td>
+    <td class="mono">${p.rules.map(r => `${esc(r.rule)} → ${esc(r.action)}`).join('<br>')}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+</script>
+</body>
+</html>
