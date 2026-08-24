@@ -51,10 +51,12 @@ async def save_epsilon(value: float) -> None:
     )
 
 
-async def log_decision(entry: dict) -> None:
+async def log_decision(entry: dict, *, decision_ref: str | None = None) -> None:
     db = get_db()
     entry = dict(entry)
     entry.setdefault("timestamp", datetime.now(timezone.utc))
+    if decision_ref:
+        entry["decision_ref"] = decision_ref
     await db.threshold_decisions.insert_one(entry)
 
 
@@ -70,3 +72,34 @@ async def save_interaction_buffer(user_id: str, concept_id: str, buf: dict) -> N
     doc = dict(buf)
     doc["_id"] = f"buffer:{user_id}:{concept_id}"
     await db.threshold_meta.replace_one({"_id": doc["_id"]}, doc, upsert=True)
+
+
+async def get_decision_trace(user_id: str, concept_id: str,
+                              limit: int = 200) -> list[dict]:
+    """Explainability API backing store — the full Threshold RL decision trace
+    for a learner×concept pair.  Returns every threshold adjustment event
+    (tau_struggling/tau_mastered changes, actions chosen, rewards, Q-values
+    before/after) ordered by tau_timestep ascending.
+    """
+    db = get_db()
+    query: dict = {"user_id": user_id, "concept_id": concept_id}
+    out: list[dict] = []
+    async for doc in db.threshold_decisions.find(query).sort("tau_timestep", 1).limit(limit):
+        doc["_id"] = str(doc["_id"])
+        out.append(doc)
+    return out
+
+
+async def get_decision_by_ref(decision_ref: str) -> dict | None:
+    """Look up a single threshold decision by its decision_ref identifier.
+
+    The decision_ref format is ``threshold:{user_id}:{concept_id}:{tau_timestep}``
+    and is deterministically generated at interaction time so that every quiz
+    attempt can be linked back to the exact threshold decision that produced the
+    cognitive-state classification it was evaluated under.
+    """
+    db = get_db()
+    doc = await db.threshold_decisions.find_one({"decision_ref": decision_ref})
+    if doc:
+        doc["_id"] = str(doc["_id"])
+    return doc

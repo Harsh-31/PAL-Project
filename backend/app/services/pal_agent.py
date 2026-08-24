@@ -129,6 +129,22 @@ class AdaptiveLearningOrchestrator:
             state_changed=False,
         )
 
+        # decision_ref: deterministic link from this interaction to the exact
+        # threshold decision that produced the cognitive-state thresholds.
+        # When threshold_update fires (every N interactions), it returns a fresh
+        # decision_ref; otherwise we reconstruct it from the current tau_timestep
+        # so every interaction is linked, not just the ones that trigger updates.
+        if threshold_update and threshold_update.get("decision_ref"):
+            threshold_decision_ref = threshold_update["decision_ref"]
+        else:
+            # No threshold update this step — reference the most recent decision
+            from app.services import kg_service as _kg
+            current_thresholds = await _kg.get_thresholds(user_id, concept_id)
+            tau_ts = current_thresholds.get("tau_timestep", 0)
+            threshold_decision_ref = (
+                f"threshold:{user_id}:{concept_id}:{tau_ts}" if tau_ts > 0 else None
+            )
+
         # ---- STEP 5: Process KG — intervention lookup (per-learner thresholds) ----
         intervention = await kg_service.get_intervention(user_id, concept_id, new_mastery)
 
@@ -194,7 +210,9 @@ class AdaptiveLearningOrchestrator:
                 "tau_struggling": intervention.get("tau_struggling"),
                 "tau_mastered": intervention.get("tau_mastered"),
                 "updated_this_step": threshold_update is not None,
+                "decision_ref": threshold_decision_ref,
             },
+            "decision_ref": threshold_decision_ref,
             "recommendations": recommendations,
             "recommender_invoked": recommender_invoked,
             "recommender_failed": recommender_failed,

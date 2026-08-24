@@ -20,6 +20,7 @@ from app.database.mongo import get_db
 from app.models.schemas import QuizRequest, QuizAttemptIn
 from app.services import kg_service, pal_agent
 from app.services.adaptive import persistence as rl_persistence
+from app.services.threshold_rl import persistence as threshold_persistence
 from app.services.ollama_service import ollama
 from app.utils.deps import current_user
 
@@ -154,6 +155,7 @@ async def submit(payload: QuizAttemptIn, user=Depends(current_user)):
         "correct": correct,
         "time_taken_sec": payload.time_taken_sec,
         "difficulty": qdoc["difficulty"],
+        "decision_ref": trace.get("decision_ref"),
         "trace": trace,
         "timestamp": datetime.now(timezone.utc),
     })
@@ -198,3 +200,93 @@ async def summary(chunk_id: str, user=Depends(current_user)):
         hobbies=hobbies,
     )
     return result
+
+
+# ---------------------------------------------------------------------------
+# Decision Traceability APIs
+# ---------------------------------------------------------------------------
+
+@router.get("/threshold-decisions/{concept_id}")
+async def threshold_decisions(concept_id: str, user=Depends(current_user)):
+    """Explainability API — returns the full Threshold RL decision trace for a
+    learner×concept pair.  Each entry records the raw mastery and accuracy
+    changes, personalized threshold updates (tau_struggling, tau_mastered),
+    the Q-learning actions chosen, rewards, and Q-values before/after.
+
+    Answers: "why did PAL set *these* cognitive-state boundaries for this
+    learner at this point?"
+    """
+    trace = await threshold_persistence.get_decision_trace(user["id"], concept_id)
+    return {"count": len(trace), "decisions": trace}
+
+
+@router.get("/decision-pathway/{question_id}")
+async def decision_pathway(question_id: str, user=Depends(current_user)):
+    """End-to-end decision traceability — reconstructs the complete pathway:
+
+        mastery → personalized thresholds → cognitive state →
+        Process KG rule → pedagogical action
+
+    for a single quiz interaction identified by question_id.  Joins the
+    quiz_attempt record (which carries the full orchestrator trace) with the
+    threshold decision it was linked to via decision_ref, producing one
+    self-contained JSON object that explains every decision PAL made for
+    that interaction.
+    """
+    db = get_db()
+
+    # 1. Find the quiz attempt for this question + user
+    attempt = await db.quiz_attempts.find_one({
+        "question_id": question_id, "user_id": user["id"],
+    })
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Quiz attempt not found")
+
+    attempt["_id"] = str(attempt["_id"])
+    trace = attempt.get("trace", {})
+
+    # 2. Resolve the linked threshold decision (if any)
+    decision_ref = attempt.get("decision_ref")
+    threshold_decision = None
+    if decision_ref:
+        threshold_decision = await threshold_persistence.get_decision_by_ref(decision_ref)
+
+    # 3. Compose the full end-to-end pathway
+    pathway = {
+        "question_id": question_id,
+        "concept_id": attempt.get("concept_id"),
+        "timestamp": attempt.get("timestamp"),
+        "correct": attempt.get("correct"),
+        "difficulty": attempt.get("difficulty"),
+
+        # --- Layer 1: Mastery ---
+        "mastery": {
+            "value": trace.get("beliefs", {}).get("mastery"),
+            "predicted": trace.get("beliefs", {}).get("predicted"),
+            "confidence": trace.get("confidence"),
+        },
+
+        # --- Layer 2: Personalized Thresholds (from Threshold RL) ---
+        "thresholds": {
+            "tau_struggling": trace.get("threshold_update", {}).get("tau_struggling"),
+            "tau_mastered": trace.get("threshold_update", {}).get("tau_mastered"),
+            "updated_this_step": trace.get("threshold_update", {}).get("updated_this_step"),
+            "decision_ref": decision_ref,
+            "threshold_decision": threshold_decision,
+        },
+
+        # --- Layer 3: Cognitive State (classified using thresholds) ---
+        "cognitive_state": trace.get("cognitive_state"),
+
+        # --- Layer 4: Process KG Rule → Pedagogical Action ---
+        "intervention": trace.get("intervention"),
+
+        # --- Layer 5: Recommendations (if intervention required content) ---
+        "recommendations": trace.get("recommendations", []),
+        "retired_lecture_ids": trace.get("retired_lecture_ids", []),
+
+        # --- Hybrid RL context (difficulty selection provenance) ---
+        "rl": trace.get("rl"),
+    }
+
+    return pathway

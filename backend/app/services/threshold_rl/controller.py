@@ -192,11 +192,20 @@ class ThresholdController:
             user_id, concept_id, new_tau_s, new_tau_m, tau_timestep + 1
         )
 
+        # Deterministic decision_ref links every quiz interaction back to
+        # this exact threshold decision — the key for end-to-end traceability.
+        decision_ref = f"threshold:{user_id}:{concept_id}:{tau_timestep + 1}"
+
         log_entry = {
             "user_id": user_id,
             "concept_id": concept_id,
             "tau_timestep": tau_timestep + 1,
+            "decision_ref": decision_ref,
             "state_key": state_key,
+            "mastery_before": mastery_before,
+            "mastery_after": mastery_after,
+            "accuracy_before": accuracy_before,
+            "accuracy_after": accuracy_after,
             "tau_struggling_before": tau_s,
             "tau_struggling_after": new_tau_s,
             "action_struggling": action_s.value,
@@ -207,12 +216,13 @@ class ThresholdController:
             "q_struggling": {"before": q_s_before, "after": q_s_after},
             "q_mastered": {"before": q_m_before, "after": q_m_after},
         }
-        await persistence.log_decision(log_entry)
+        await persistence.log_decision(log_entry, decision_ref=decision_ref)
 
         return {
             "tau_struggling": new_tau_s,
             "tau_mastered": new_tau_m,
             "tau_timestep": tau_timestep + 1,
+            "decision_ref": decision_ref,
             "reward": reward,
             "actions": {"struggling": action_s.value, "mastered": action_m.value},
         }
