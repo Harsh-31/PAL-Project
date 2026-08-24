@@ -161,6 +161,7 @@ PAL's per-answer adaptation is three independent subsystems composed by one thin
 | Subsystem | Owns | Implementation |
 |---|---|---|
 | Hybrid RL | "How hard should the next question be?" (Easy/Medium/Hard) — sole authority | [`backend/app/services/adaptive/`](backend/app/services/adaptive/) |
+| Threshold RL | "Where should this learner's own Struggling/Mastered mastery cutoffs sit?" — learns per-learner `tau_struggling`/`tau_mastered`, consumed by the Process KG's intervention lookup | [`backend/app/services/threshold_rl/`](backend/app/services/threshold_rl/) |
 | Process KG | "What pedagogical intervention fits current mastery?" (Continue/Remediate/Analogy/Challenge/Skip) | [`backend/app/services/kg_service.py`](backend/app/services/kg_service.py) |
 | Recommendation Engine | "Which content resource(s) satisfy that intervention, if any?" | [`backend/app/services/recommender.py`](backend/app/services/recommender.py) |
 | Orchestrator | Sequences the three above and composes one response | [`backend/app/services/pal_agent.py`](backend/app/services/pal_agent.py) |
@@ -188,9 +189,13 @@ Learner answers a question
                                        |                 |
                                        v                 v
                               Hybrid RL (Q-learning   Process KG
-                              + IRT prior) picks      (Frustrated/Struggling/
-                              next difficulty         OnTrack/Confident/Mastered)
+                              + IRT prior) picks      (Struggling/OnTrack/
+                              next difficulty         Mastered — per-learner
+                                                       tau_struggling/tau_mastered,
+                                                       see Threshold RL below)
 ```
+
+`record_mastery`'s `+0.12`/`-0.08` step size is a hand-set, deliberately asymmetric constant (correct answers move mastery up ~1.5x faster than incorrect answers move it down) — not learned or paper-derived; it predates both RL subsystems and is the KG's own mastery-update rule.
 
 ### Immediate answer feedback (independent of the orchestrator)
 
@@ -198,15 +203,21 @@ Learner answers a question
 
 ### Process KG — pedagogical states
 
-Deterministic, threshold-driven (mastery score in `[0,1]`, seeded once into Neo4j — not learned):
+3-state, threshold-driven on mastery score `[0,1]` (`kg_service.get_intervention`) — the KG's `CognitiveState`/`InterventionRule` nodes hold the rule/action mapping (seeded once in `neo4j_db._seed_process_kg`), but the classification thresholds themselves are **not** fixed constants: they're the per-learner `tau_struggling`/`tau_mastered` values learned by the Threshold RL and stored on that learner's `MASTERS` edge (defaulting to `0.40`/`0.85` until the Threshold RL has run at least once for them):
 
-| State | Mastery threshold | Rule | Action | Triggers Recommendation Engine? |
-|---|---|---|---|---|
-| Frustrated | ≤ 0.40 | OfferSimplerAnalogy | `simplify_with_hobby_analogy` | No — served by the immediate-feedback analogy above |
-| Struggling | ≤ 0.55 | AddRemedialContent | `insert_prerequisite_video` | Yes, on fresh entry only |
-| OnTrack | ≤ 0.70 | ContinueBaseline | `continue_normal` | No |
-| Confident | ≤ 0.85 | AdvanceDifficulty | `offer_challenge_content` | No — means "performing well," never adds enrichment |
-| Mastered | ≤ 0.95 | SkipRedundant | `skip_next_similar_chunk` | No — instead retires any still-active remediation for the concept |
+```
+mastery < tau_struggling        -> Struggling
+tau_struggling <= mastery < tau_mastered -> OnTrack
+mastery >= tau_mastered         -> Mastered
+```
+
+| State | Rule(s) (priority order) | Action(s) | Triggers Recommendation Engine? |
+|---|---|---|---|
+| Struggling | OfferSimplerAnalogy, AddRemedialContent | `simplify_with_hobby_analogy`, `insert_prerequisite_video` | Yes, on fresh entry only |
+| OnTrack | OnTrackContinue | `continue_normal` | No |
+| Mastered | MasteredChallenge | `offer_challenge_content` | No — instead retires any still-active remediation for the concept |
+
+An earlier 5-state design (`Frustrated`/`Confident` as separate states, with a `SkipRedundant`/`skip_next_similar_chunk` action on Mastered) has been retired — `_seed_process_kg` actively deletes those legacy `CognitiveState`/`InterventionRule` nodes on startup if found. `Mastered` now means "push harder content," not "skip," and `Struggling` covers what used to be split across `Frustrated`+`Struggling`.
 
 **State-transition gating**: a recommendation only fires when the learner's cognitive state just *changed* into one that needs content (e.g. OnTrack → Struggling), never on every answer spent remaining in that state (Struggling → Struggling). The previous state is persisted on the same Neo4j `MASTERS` edge `record_mastery` already writes (`kg_service.swap_intervention_state`), so this survives separate HTTP requests.
 
@@ -254,7 +265,7 @@ p_stat(d|x_t)               p_RL(d|x_t)
   Q-learning update: Q(s,a) <- Q(s,a) + alpha[r_t + gamma*max_a'Q(s',a') - Q(s,a)]
 ```
 
-The RL controller owns **difficulty selection only**. The Process KG still owns **pedagogical interventions** (`OfferSimplerAnalogy`, `AddRemedialContent`, `AdvanceDifficulty`, `SkipRedundant`) based on mastery, unchanged from before. The two are independent, composed by `AdaptiveLearningOrchestrator.process_attempt` (see "Adaptive Learning Architecture" above).
+The RL controller owns **difficulty selection only**. The Process KG still owns **pedagogical interventions** (`OfferSimplerAnalogy`, `AddRemedialContent`, `OnTrackContinue`, `MasteredChallenge`) based on mastery, unchanged from before. The two are independent, composed by `AdaptiveLearningOrchestrator.process_attempt` (see "Adaptive Learning Architecture" above).
 
 ### Learner state x_t
 
@@ -272,7 +283,7 @@ x_t = [skill, recent_accuracy, normalized_response_time,
 | `normalized_response_time` | z-score of the current response time against the learner's own response-time history, squashed with `sigma(-z)` into [0,1] (1 = fast, 0 = slow, relative to that learner). |
 | `streak_momentum` | Signed current correct/incorrect streak length, squashed with `tanh(streak/scale)` into [-1,1]. |
 | `learning_velocity` | Change in `recent_accuracy` between the current and previous rolling window — a real improvement/decline signal. |
-| `confidence` | Explicit weighted blend of (a) evidence volume (`timestep / horizon`), (b) consistency of recent correctness (1 − normalized variance), (c) consistency of recent response times (1 − coefficient of variation). No randomness. |
+| `confidence` | `0.5*evidence + 0.3*consistency + 0.2*time_consistency` (`state.py::update`, step 6) — (a) evidence volume (`timestep / horizon`), (b) consistency of recent correctness (1 − normalized variance), (c) consistency of recent response times (1 − coefficient of variation). No randomness. The 0.5/0.3/0.2 split is a hand-set priority ordering — "have we seen enough attempts at all" outweighs "were those attempts consistent" — not a fitted or paper-specified value. |
 
 State persists in MongoDB per `(user_id, concept_id)` (`learner_states` collection) and survives across sessions.
 
@@ -352,6 +363,51 @@ All parameters live in `app/services/adaptive/config.py` as typed dataclasses (`
 
 Every decision is logged to the `adaptive_decisions` MongoDB collection with the full trace: learner state, discretized state, `p_stat`, `p_rl`, blend weight, hybrid policy, selected action, reward + components, and Q-value before/after. `GET /api/quiz/decisions/{concept_id}` returns this trace so "why did PAL choose HARD here?" is always answerable.
 
+### A note on the numeric constants
+
+Every weight, threshold, and bound above lives in a typed dataclass in `config.py` — none are derived in this repo from calibration, grid search, or fitting against usage data (there's no such script; `simulate_hybrid_rl.py` runs demo profiles for illustration, it doesn't tune anything). Two patterns account for essentially all of them:
+
+- **Priority ordering by magnitude**: where a reward or blend has multiple components, the *primary* signal is always sized to dominate the *secondary/shaping* ones — e.g. `r_acc`'s `{+1, -0.5}` can't be outweighed by `r_time + r_prog + r_mom`'s `[0, 0.6]` ceiling; the confidence blend's evidence term (`0.5`) outweighs consistency (`0.3`) and timing (`0.2`). The exact numbers within that ordering are hand-picked, not derived.
+- **Continuity with a pre-existing rule**: where the RL layer replaces or augments a value that was previously a hardcoded rule, its default is set to match that rule so the learned system starts exactly where the deterministic one left off — e.g. Threshold RL's `tau_struggling_default = 0.40` / `tau_mastered_default = 0.85` reproduce the Process KG's original static Frustrated/Struggling and Confident/Mastered cutoffs.
+
+Where a docstring attributes a value to "the paper" (AAAI-26 PAL), that attribution is the code's own claim — this repo does not contain the paper itself, so those specific numbers (e.g. IRT stability thresholds `0.75`/`0.35`, hybrid weights `w_max=0.8`/`w0=0.15`/`kappa=0.7`) can't be independently checked against it here. The `### Deviations from the paper` section below lists everything the paper leaves unspecified, where the value shown is instead this codebase's own MVP choice.
+
+### Threshold RL — learnable cognitive-state boundaries
+
+Alongside the Hybrid difficulty RL, a second, independent RL system learns **per-learner** the mastery cutoffs the Process KG uses to decide Struggling vs. Mastered — instead of the fixed `0.40`/`0.85` constants every learner shared before. Implementation: [`backend/app/services/threshold_rl/`](backend/app/services/threshold_rl/); wired into the orchestrator at `pal_agent.py`'s `_threshold_rl.record_interaction(...)` call, which runs every answered question, *before* the Process KG's intervention lookup so thresholds are current when a state is decided.
+
+**Cadence**: interactions are buffered per `(user_id, concept_id)`; a Q-update + threshold adjustment only runs every `update_every_n = 5` interactions (`ThresholdUpdateConfig`), not per-answer like the difficulty RL — this is a delayed-reward design, since "did moving this threshold help?" only becomes visible after several interactions, and updating on every single answer would oscillate the boundary.
+
+**Action space**: two independent 3-action Q-policies (`DECREASE` / `KEEP` / `INCREASE`), one for `tau_struggling`, one for `tau_mastered`, sharing the same discretized 6-d state key as the difficulty RL (mirrored onto the Neo4j `MASTERS` edge by the difficulty RL, then read back here — see `controller.py::discretize_from_rl_state`). Each `INCREASE`/`DECREASE` moves its threshold by a fixed `step_delta = 0.03` (`ThresholdQLearningConfig`) — small relative to the ~0.4-wide operating bands below, so a boundary can only creep, not jump, per 5-interaction cycle.
+
+**Bounds** (`ThresholdBoundsConfig`, enforced in `controller.py::_clamp_thresholds`):
+
+| Bound | Min | Max | Default |
+|---|---|---|---|
+| `tau_struggling` | 0.20 | 0.60 | 0.40 |
+| `tau_mastered` | 0.60 | 0.95 | 0.85 |
+
+Plus a hard `min_gap = 0.15`: if a move would let `tau_mastered - tau_struggling` collapse below that gap, both are re-centered outward to preserve it. The defaults (`0.40`, `0.85`) intentionally reproduce the Process KG's original static Frustrated/Struggling and Confident/Mastered cutoffs, so the learned system starts from the same operating point as the hand-designed rule table and only *nudges* away from it within a bounded, pedagogically plausible range — the min/max bounds exist to stop the learned value from drifting somewhere nonsensical (e.g. "mastered" below 0.6) rather than to reflect any measured optimum.
+
+**Reward** (`ThresholdRewardConfig` / `reward.py`), computed once per 5-interaction window, over the *whole* window rather than one answer:
+
+```
+R_t = w1·ΔMastery + w2·ΔAccuracy − w3·InterventionCost − w4·UnnecessaryRemediation
+```
+
+| Weight | Value | Term it scales |
+|---|---|---|
+| `w_mastery_delta` | 0.4 | `mastery_after - mastery_before` over the window — the actual target outcome |
+| `w_accuracy_delta` | 0.3 | `accuracy_after - accuracy_before` — a correlated, faster-moving leading indicator of the same thing |
+| `w_intervention_cost` | 0.2 | `interventions_triggered / window_size` — a regularizer penalizing thresholds that fire remediation too often |
+| `w_unnecessary_remediation` | 0.1 | `interventions_without_improvement / max(interventions_triggered, 1)` — penalizes remediation that didn't help, weighted lowest since it's a ratio over an already-small count |
+
+As with the difficulty-RL reward, the ordering (mastery > accuracy > cost penalties) is a deliberate hand-set priority — mastery gain is the real objective, accuracy is a proxy for it, and the two penalty terms exist to discourage the policy from spamming interventions to farm mastery gain, not to compete with it in magnitude. There's no paper citation for this module — the Threshold RL is a repo-native extension beyond what the AAAI-26 paper covers (see Deviations below).
+
+**Q-learning hyperparameters**: identical values to the difficulty RL's `QLearningConfig` (`alpha=0.15`, `gamma=0.90`, `epsilon=0.25`, `epsilon_decay=0.97`, `epsilon_min=0.05`) — `gamma=0.9` weights the delayed, windowed reward heavily; `alpha=0.15` is a conservative update step to avoid table thrashing across two independent Q-tables (struggling/mastered); `epsilon` decays from a 25% exploration rate to a 5% floor so exploration never fully stops. Seeded (`seed=137`, offset by the learner's `tau_timestep` per update) for reproducibility.
+
+**Persistence & explainability**: both Q-tables and `epsilon` are stored in MongoDB (`threshold_q_values`, `threshold_meta`), shared globally across learners for the same fast-convergence reason as the difficulty RL's Q-table. Every update is logged to `threshold_decisions` with the full before/after trace (thresholds, actions, reward components, Q-values).
+
 ### Onboarding playlist
 
 `recommender.build_onboarding_starter_playlist` turns a learner's free-text goal into a starter playlist via semantic (embedding cosine-similarity) concept matching:
@@ -383,6 +439,7 @@ python simulate_hybrid_rl.py
 - **`progress_t`**: the paper does not pin down its exact functional form; implemented as `min(timestep / progress_horizon, 1.0)`, a monotonic proxy for "evidence accumulated in this adaptation stream."
 - **`p_RL(d|x_t)`**: represented as the epsilon-greedy policy's probability simplex (argmax gets `1-epsilon`) rather than a softmax-over-Q-values, to avoid introducing an unspecified temperature hyperparameter and to keep exploration and the RL distribution the same mechanism.
 - **Q-table scope**: shared across learners (keyed by discretized state only) rather than per-learner, for faster convergence at MVP traffic volumes — the discretized state already carries learner-specific signal.
+- **Threshold RL**: the per-learner `tau_struggling`/`tau_mastered` boundary-learning system (`app/services/threshold_rl/`, see above) is not part of the AAAI-26 PAL paper's described algorithm — it's a repo-native extension applying the same tabular Q-learning pattern to a second decision (where the Process KG's mastery cutoffs should sit) rather than a paper-specified requirement.
 
 Contributing
 
