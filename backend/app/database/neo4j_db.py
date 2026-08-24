@@ -1,9 +1,9 @@
 """Neo4j driver — holds the three-layer neuro-symbolic Knowledge Graph.
 
-Layers (per PRD):
-  T-Box (static):   Course, Concept, LectureChunk, AssessmentItem + prerequisite/contains edges
-  A-Box (dynamic):  Learner (hobbies), Interaction, MASTERS/CONSUMED edges w/ scores
-  Process KG:       CognitiveState, InterventionRule + deterministic triggers
+Layers (per paper, Figure 1):
+  Content KG (static):  Course, Concept, LectureChunk + CONTAINS / REQUIRES / TEACHES edges
+  User KG    (dynamic): Learner, MASTERS edges (mastery, thresholds, RL state vector)
+  Process KG (symbolic): CognitiveState, InterventionRule + TRIGGERS edges
 """
 from __future__ import annotations
 from neo4j import AsyncGraphDatabase, AsyncDriver

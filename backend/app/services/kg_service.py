@@ -1,8 +1,8 @@
 """Knowledge Graph operations — writes to Neo4j.
 
 Responsibilities:
-  1. Seed T-Box (Course / Concept / LectureChunk / prerequisite edges)
-  2. Create/update Learner (A-Box) with hobbies + baseline
+  1. Seed Content KG (Course / Concept / LectureChunk / REQUIRES / TEACHES edges)
+  2. Create/update Learner (User KG) with hobbies + baseline
   3. Record interactions (quiz attempts, mastery updates)
   4. Query mastery / next-best chunk for playlist generation
 
@@ -28,7 +28,7 @@ def _extract_youtube_id(url: str) -> str:
 
 
 async def seed_courses_if_empty() -> None:
-    """T-Box seed — courses, concepts, prereqs, lecture chunks.
+    """Content KG seed — courses, concepts, prereqs, lecture chunks.
 
     Runs on every startup using batched UNWIND queries for speed.
     Reads the FULL PALMS MongoDB schema from courses.json.
