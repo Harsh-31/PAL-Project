@@ -4,6 +4,7 @@ All prompts are engineered to return strict JSON where structure matters.
 Every call goes through _chat which uses Ollama's native /api/chat endpoint
 with format='json' so we don't have to parse free text.
 """
+from __future__ import annotations
 import json
 import re
 import uuid
@@ -56,34 +57,100 @@ class OllamaService:
         concept_name: str,
         chunk_summary: str,
         difficulty: int,
-        hobbies: list[str],  # kept in signature for compat, not used in generation
+        hobbies: list[str],
+        cognitive_state: str = "OnTrack",
     ) -> dict:
-        """Adaptive MCQ generation — difficulty-scaled, concept-focused.
+        """Adaptive MCQ generation.
 
-        Note: hobbies are intentionally NOT used here. Hobby analogies belong to
-        the post-lecture summary (summarize_with_hobby) and the sidebar chat.
-        A quiz question should test the concept directly, in domain-appropriate
-        language — mixing in the learner's cricket or Marvel references makes
-        the question feel gimmicky and can obscure what's actually being asked.
+        Difficulty (Hybrid RL) and cognitive state (Process KG) have
+        deliberately separate, non-overlapping responsibilities in this
+        prompt: difficulty is the sole authority over how hard the question
+        and distractors are; cognitive state only ever affects how the
+        question is presented (language, scaffolding). Cognitive state must
+        never be able to raise or lower the requested difficulty — see the
+        explicit "DO NOT" lines in STATE_GUIDANCE below, and the authority
+        statement in both the system and user prompts.
         """
         system = (
             "You are PAL, an adaptive tutor. Generate exactly ONE multiple-choice question "
             "that tests understanding of the specified concept. "
+            "The requested difficulty level is authoritative: it was selected by the Hybrid RL "
+            "policy and must be met exactly. Learner cognitive state may affect presentation and "
+            "scaffolding, but MUST NOT override the requested difficulty. "
             "Output STRICT JSON only, no prose, no markdown, no code fences. "
             "Schema: {\"question\": str, \"options\": [str,str,str,str], "
             "\"correct_index\": int (0-3), \"explanation\": str}."
         )
+        difficulty_levels = {
+            1: (
+                "- Direct recall / recognition.\n"
+                "- Straightforward reasoning.\n"
+                "- Clearly distinguishable distractors.\n"
+            ),
+            2: (
+                "- Basic conceptual understanding.\n"
+                "- One-step reasoning.\n"
+                "- Moderately plausible distractors.\n"
+            ),
+            3: (
+                "- Application of the concept.\n"
+                "- Multi-step or comparative reasoning where appropriate.\n"
+                "- Plausible distractors.\n"
+            ),
+            4: (
+                "- Deeper application / analysis.\n"
+                "- Subtle conceptual distinctions.\n"
+                "- Strong plausible distractors.\n"
+            ),
+            5: (
+                "- Advanced application / synthesis / edge-case reasoning.\n"
+                "- High conceptual precision.\n"
+                "- Challenging plausible distractors.\n"
+            ),
+        }
+        state_guidance = {
+            "Struggling": (
+                "- Use simple, clear sentence structure.\n"
+                "- Provide sufficient context in the question itself.\n"
+                "- Avoid unnecessary linguistic complexity.\n"
+                "- Make the task being asked explicit.\n"
+                "- Do NOT make distractors easier or more obviously wrong because of this state.\n"
+                "- Do NOT reduce conceptual difficulty below the requested level.\n"
+            ),
+            "OnTrack": (
+                "- Use standard academic phrasing.\n"
+                "- Normal level of scaffolding.\n"
+            ),
+            "Mastered": (
+                "- Use concise, domain-appropriate academic phrasing.\n"
+                "- Minimal scaffolding.\n"
+                "- Do NOT increase difficulty beyond the requested level.\n"
+                "- Do NOT automatically introduce cross-concept synthesis unless the requested "
+                "difficulty level above already calls for it.\n"
+            ),
+        }
         user = (
             f"Concept: {concept_name}\n"
             f"Lecture chunk summary: {chunk_summary}\n"
-            f"Difficulty (1-5): {difficulty}\n"
-            "Rules:\n"
+            "\n"
+            f"Requested difficulty: {difficulty}/5 — selected by Hybrid RL, authoritative.\n"
+            f"{difficulty_levels.get(difficulty, difficulty_levels[3])}"
+            "\n"
+            f"Learner cognitive state: {cognitive_state} — from Process KG, presentation guidance only.\n"
+            f"{state_guidance.get(cognitive_state, state_guidance['OnTrack'])}"
+            "\n"
+            "A learner may legitimately be e.g. difficulty=5 + Struggling, or difficulty=2 + Mastered — "
+            "these are not contradictions. Difficulty describes what level of reasoning is required; "
+            "cognitive state describes how that question should be presented. Never let cognitive "
+            "state change what difficulty level above requires.\n"
+            "\n"
+            "Additional rules:\n"
             "- The question and all options must be phrased in direct, domain-appropriate language.\n"
             "- Do NOT reference sports, movies, hobbies, or everyday analogies in the question or options.\n"
             "- Exactly 4 options.\n"
-            "- Exactly one clearly correct answer; the other three should be plausible distractors.\n"
-            "- Explanation should be one crisp sentence justifying the correct answer.\n"
-            "- Higher difficulty = trickier distractors and more precise wording."
+            "- Exactly one clearly correct answer; the other three should be plausible distractors "
+            "matching the requested difficulty level above.\n"
+            "- Explanation should be one to two crisp sentences justifying the correct answer."
         )
         raw = await self._chat(system, user, json_mode=True)
         data = self._safe_json(raw, {
@@ -105,7 +172,11 @@ class OllamaService:
             data["correct_index"] = int(data.get("correct_index", 0)) % 4
         except Exception:
             data["correct_index"] = 0
-        data.setdefault("explanation", "")
+        # The model occasionally returns valid JSON with an empty (not missing)
+        # "explanation" — setdefault alone won't catch that, and a blank
+        # explanation means the learner sees nothing after a wrong answer.
+        if not (data.get("explanation") or "").strip():
+            data["explanation"] = f"The correct answer is: {data['options'][data['correct_index']]}"
         data["id"] = str(uuid.uuid4())
         return data
 

@@ -45,15 +45,43 @@ def _tracks_to_concepts(track_ids: list[str], all_tracks: list[dict]) -> list[st
 
 @router.post("/onboarding")
 async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
-    if not payload.track_ids:
-        raise HTTPException(status_code=400, detail="Pick at least one learning track")
-
     all_tracks = kg_service.load_tracks()
-    target_concept_ids = _tracks_to_concepts(payload.track_ids, all_tracks)
-    if not target_concept_ids:
-        raise HTTPException(status_code=400, detail="Selected tracks are not recognised")
+    track_concept_ids = (
+        _tracks_to_concepts(payload.track_ids, all_tracks)
+        if payload.track_ids else []
+    )
 
-    # A-Box: store hobbies/baseline/goal on the Learner node
+    # Goal-based semantic matching across ALL concepts in the KG.
+    # Track concepts get a boost but don't limit the search.
+    # target_concept_ids backs the ONGOING, uncapped /api/playlist view — it
+    # is intentionally NOT capped to 10, only tightened (top_k=20/floor=0.65
+    # with a top-3 fallback, see recommender.match_goal_to_concepts).
+    target_concept_ids = await recommender.match_goal_to_concepts(
+        goal_text=payload.goal,
+        baseline=payload.baseline,
+        track_concept_ids=track_concept_ids or None,
+    )
+
+    # Fallback: if goal matching returned nothing, use track concepts directly
+    if not target_concept_ids and track_concept_ids:
+        target_concept_ids = track_concept_ids
+
+    if not target_concept_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not match your goal to any content. "
+                   "Try a more specific goal or select learning tracks.",
+        )
+
+    # The initial, focused STARTER playlist — capped at
+    # recommender.MAX_ONBOARDING_LECTURES (10), relevance-ranked. This is a
+    # separate, smaller view from target_concept_ids above; later adaptive
+    # recommendations (remedial/challenge) add more over time.
+    starter = await recommender.build_onboarding_starter_playlist(
+        user_id=user["id"], goal_text=payload.goal,
+        track_concept_ids=track_concept_ids or None,
+    )
+
     await kg_service.upsert_learner(
         user_id=user["id"],
         hobbies=payload.hobbies,
@@ -61,7 +89,6 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
         goal=payload.goal,
     )
 
-    # Mirror onboarding state on the user doc so the frontend can hydrate quickly.
     db = get_db()
     await db.users.update_one(
         {"_id": ObjectId(user["id"])},
@@ -75,18 +102,22 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
             "evaluation_frequency": payload.evaluation_frequency,
             "onboarded_at": datetime.now(timezone.utc),
         },
-         "$unset": {"current_course_id": ""}},  # remove legacy field
+         "$unset": {"current_course_id": ""}},
     )
-    return {"ok": True, "track_ids": payload.track_ids,
-            "target_concept_ids": target_concept_ids}
+    return {
+        "ok": True,
+        "track_ids": payload.track_ids,
+        "target_concept_ids": target_concept_ids,
+        "starter_playlist": starter["lectures"],
+        "starter_playlist_fallback_activated": starter["fallback_activated"],
+    }
 
 
 @router.get("/playlist")
 async def get_playlist(user=Depends(current_user)):
-    """Composed playlist across the learner's chosen tracks (their goal).
+    """Composed playlist across the learner's goal-matched concepts.
 
-    PRD: "custom video playlist from a library of open-source courses ...
-    acts as a bridge from the user's current baseline to their target mastery."
+    Pipeline: target_concept_ids → prerequisite sort → baseline filter → compose.
     """
     db = get_db()
     doc = await db.users.find_one({"_id": ObjectId(user["id"])})
@@ -96,22 +127,40 @@ async def get_playlist(user=Depends(current_user)):
     target_concept_ids = doc.get("target_concept_ids") or []
     if not target_concept_ids:
         raise HTTPException(status_code=400,
-                            detail="No learning tracks selected — complete onboarding first")
+                            detail="Complete onboarding first")
 
-    lectures = await kg_service.get_composed_playlist(user["id"], target_concept_ids)
-    mastery = await kg_service.get_mastery_for_concepts(user["id"], target_concept_ids)
+    baseline = doc.get("baseline", "beginner")
 
-    # Recommendation engine — pass playlist lecture ids so we don't recommend
-    # lectures already in the composed playlist.
+    # Build difficulty map from concept nodes
+    concept_info = await kg_service.get_mastery_for_concepts(user["id"], target_concept_ids)
+    difficulty_map = {c["id"]: c["difficulty"] for c in concept_info}
+
+    # Prerequisite-aware ordering
+    prereq_graph = await kg_service.get_prerequisite_graph(target_concept_ids)
+    ordered = kg_service.topological_sort_concepts(
+        target_concept_ids, prereq_graph, difficulty_map
+    )
+
+    # Baseline-level filtering (preserves prerequisites)
+    prereq_closure = await kg_service.get_prerequisite_closure(target_concept_ids)
+    filtered = recommender.apply_baseline_filter(
+        ordered, difficulty_map, baseline, prereq_closure
+    )
+
+    lectures = await kg_service.get_composed_playlist(
+        user["id"], filtered, ordered_concept_ids=filtered
+    )
+    mastery = await kg_service.get_mastery_for_concepts(user["id"], filtered)
+
     playlist_lecture_ids = [l["lecture_id"] for l in lectures]
     supplementary = await recommender.recommend_supplementary(
-        user["id"], target_concept_ids,
+        user["id"], filtered,
         playlist_lecture_ids=playlist_lecture_ids,
     )
 
     return {
         "track_ids": doc.get("track_ids", []),
-        "target_concept_ids": target_concept_ids,
+        "target_concept_ids": filtered,
         "lectures": lectures,
         "supplementary": supplementary,
         "mastery": mastery,

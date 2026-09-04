@@ -1,10 +1,11 @@
 """Neo4j driver — holds the three-layer neuro-symbolic Knowledge Graph.
 
-Layers (per PRD):
-  T-Box (static):   Course, Concept, LectureChunk, AssessmentItem + prerequisite/contains edges
-  A-Box (dynamic):  Learner (hobbies), Interaction, MASTERS/CONSUMED edges w/ scores
-  Process KG:       CognitiveState, InterventionRule + deterministic triggers
+Layers (per paper, Figure 1):
+  Content KG (static):  Course, Concept, LectureChunk + CONTAINS / REQUIRES / TEACHES edges
+  User KG    (dynamic): Learner, MASTERS edges (mastery, thresholds, RL state vector)
+  Process KG (symbolic): CognitiveState, InterventionRule + TRIGGERS edges
 """
+from __future__ import annotations
 from neo4j import AsyncGraphDatabase, AsyncDriver
 from app.config import settings
 
@@ -54,23 +55,54 @@ async def _init_schema() -> None:
 
 
 async def _seed_process_kg() -> None:
-    """Seed pedagogical rules — the deterministic anchor that stops the LLM hallucinating."""
+    """Seed the 3-state Process KG.
+
+    Thresholds are NOT on InterventionRule nodes — they live as learned
+    per-learner values (tau_struggling, tau_mastered) on each MASTERS edge,
+    managed by the Threshold RL.  The rules here are pure state→action maps.
+    """
     rules = [
-        # (state, rule, mastery_lt, action)
-        ("Frustrated", "OfferSimplerAnalogy", 0.4, "simplify_with_hobby_analogy"),
-        ("Struggling", "AddRemedialContent", 0.55, "insert_prerequisite_video"),
-        ("Confident", "AdvanceDifficulty", 0.85, "raise_question_difficulty"),
-        ("Mastered", "SkipRedundant", 0.95, "skip_next_similar_chunk"),
-        ("OnTrack", "ContinueBaseline", 0.7, "continue_normal"),
+        # (state, [(rule, action), ...])
+        ("Struggling", [
+            ("OfferSimplerAnalogy", "simplify_with_hobby_analogy"),
+            ("AddRemedialContent", "insert_prerequisite_video"),
+        ]),
+        ("OnTrack", [
+            ("OnTrackContinue", "continue_normal"),
+        ]),
+        ("Mastered", [
+            ("MasteredChallenge", "offer_challenge_content"),
+        ]),
     ]
     async with neo.driver.session() as s:
-        for state, rule, thr, action in rules:
-            await s.run(
-                """
-                MERGE (st:CognitiveState {name:$state})
-                MERGE (r:InterventionRule {name:$rule})
-                  SET r.mastery_threshold=$thr, r.action=$action
-                MERGE (st)-[:TRIGGERS]->(r)
-                """,
-                state=state, rule=rule, thr=thr, action=action,
-            )
+        # Remove legacy 5-state nodes that no longer exist.
+        await s.run(
+            """
+            MATCH (st:CognitiveState)
+            WHERE st.name IN ['Frustrated', 'Confident']
+            OPTIONAL MATCH (st)-[t:TRIGGERS]->(r:InterventionRule)
+            DETACH DELETE st
+            WITH r WHERE r IS NOT NULL
+            AND NOT EXISTS { MATCH ()-[:TRIGGERS]->(r) }
+            DELETE r
+            """
+        )
+        # Remove the legacy SkipRedundant rule (Mastered no longer skips).
+        await s.run(
+            """
+            MATCH (r:InterventionRule {name: 'SkipRedundant'})
+            DETACH DELETE r
+            """
+        )
+        for state, actions in rules:
+            for priority, (rule, action) in enumerate(actions):
+                await s.run(
+                    """
+                    MERGE (st:CognitiveState {name:$state})
+                    MERGE (r:InterventionRule {name:$rule})
+                      SET r.action=$action
+                    MERGE (st)-[t:TRIGGERS]->(r)
+                      SET t.priority=$priority
+                    """,
+                    state=state, rule=rule, action=action, priority=priority,
+                )

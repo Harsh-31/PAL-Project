@@ -1,10 +1,11 @@
 """Async MongoDB client (Motor) — operational store for users, interactions, notes."""
+from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.config import settings
 
 
 class MongoDB:
-    client: AsyncIOMotorClient | None = None
+    client: Optional[AsyncIOMotorClient] = None
     db = None
 
 
@@ -20,6 +21,13 @@ async def connect_to_mongo() -> None:
     await mongo.db.notes.create_index([("user_id", 1), ("video_id", 1)])
     await mongo.db.quiz_attempts.create_index([("user_id", 1), ("timestamp", -1)])
     await mongo.db.chat_history.create_index([("user_id", 1), ("timestamp", 1)])
+    # Hybrid RL adaptive-difficulty engine (app.services.adaptive)
+    await mongo.db.learner_states.create_index("user_id")
+    await mongo.db.adaptive_decisions.create_index([("learner_id", 1), ("timestep", 1)])
+    await mongo.db.adaptive_decisions.create_index([("session_id", 1), ("timestep", 1)])
+    await mongo.db.remedial_recommendations.create_index(
+        [("user_id", 1), ("concept_id", 1), ("status", 1)]
+    )
     print("[Mongo] connected & indexes ensured")
 
 

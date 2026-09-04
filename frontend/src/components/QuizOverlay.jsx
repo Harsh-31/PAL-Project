@@ -64,15 +64,19 @@ export default function QuizOverlay({ lectureId, chunk, onClose }) {
     return 'quiz-option';
   };
 
+  // Learner-facing pedagogical messages — deliberately plain-language, never
+  // mentioning internal Process KG state names (Struggling/OnTrack/
+  // Mastered), rule names, thresholds, or the recommendation engine.
+  // `rule` is only ever used here as an internal lookup key, never displayed.
   const interventionText = (rule) => {
     const map = {
-      OfferSimplerAnalogy: 'Frustrated? PAL will use a simpler analogy for the next question.',
-      AddRemedialContent: 'PAL is inserting a prerequisite refresher next.',
-      AdvanceDifficulty: 'You are on fire — difficulty going up!',
-      SkipRedundant: 'Mastered — skipping repetitive content.',
-      ContinueBaseline: 'On track. Keep going.',
+      OfferSimplerAnalogy: "Let's look at this another way.",
+      AddRemedialContent: "Let's review this concept before moving on.",
+      AdvanceDifficulty: "Good progress. Let's continue.",
+      SkipRedundant: "You've mastered this concept. Let's move ahead.",
+      ContinueBaseline: "You're on the right track. Let's continue.",
     };
-    return map[rule] || 'PAL is adapting the next step.';
+    return map[rule] || "Let's continue.";
   };
 
   return (
@@ -103,6 +107,17 @@ export default function QuizOverlay({ lectureId, chunk, onClose }) {
               <div className="verdict">{result.correct ? '✓ Correct!' : '✗ Not quite'}</div>
               <div>{result.explanation}</div>
             </div>
+            {/* Immediate wrong-answer feedback — independent of Process KG
+                state and video playback; always readable right here whenever
+                present, regardless of Struggling/OnTrack/Mastered. */}
+            {!result.correct && result.analogy && (
+              <div className="quiz-analogy" style={{
+                borderLeft: '3px solid var(--primary)', paddingLeft: 10,
+                color: 'var(--muted)', marginBottom: 12, fontSize: 13,
+              }}>
+                <b>Another way to think about it:</b> {result.analogy}
+              </div>
+            )}
             <div style={{ marginBottom: 8 }}>
               <b>Mastery:</b> {(result.mastery * 100).toFixed(0)}%
               &nbsp;·&nbsp;
@@ -110,6 +125,10 @@ export default function QuizOverlay({ lectureId, chunk, onClose }) {
             </div>
             <div className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
               {interventionText(result.intervention.rule)}
+              {result.recommendations?.length > 0 && (
+                <> PAL added {result.recommendations.length} related lecture
+                {result.recommendations.length > 1 ? 's' : ''} to your sidebar.</>
+              )}
             </div>
             {q.options.map((opt, i) => (
               <div key={i} className={optClass(i)}>

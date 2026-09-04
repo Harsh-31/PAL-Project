@@ -31,37 +31,49 @@ export default function Explorer() {
         {snap.mastery.length === 0 && <p className="muted">No mastery edges yet — quiz to populate.</p>}
         {snap.mastery.map(m => (
           <div key={m.concept} className="kg-bar">
-            <div className="concept">{m.concept}</div>
+            <div className="concept">
+              {m.concept}
+              {m.cognitive_state && (
+                <span style={{ marginLeft: 8, fontSize: '0.8em', color: 'var(--muted)' }}>
+                  [{m.cognitive_state}]
+                </span>
+              )}
+            </div>
             <div className="bar-track"><div className="bar-fill" style={{ width: `${m.score * 100}%` }} /></div>
-            <div className="score">{(m.score * 100).toFixed(0)}% · {m.attempts} attempts</div>
+            <div className="score">
+              {(m.score * 100).toFixed(0)}% · {m.attempts} attempts
+              {m.tau_struggling != null && (
+                <span style={{ marginLeft: 6, fontSize: '0.8em', color: 'var(--muted)' }}>
+                  (τ_s={m.tau_struggling?.toFixed(2)} τ_m={m.tau_mastered?.toFixed(2)})
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
       <div className="card dash-section" style={{ marginTop: 16 }}>
-        <h2>Process KG — deterministic rules</h2>
+        <h2>Process KG — adaptive rules</h2>
         <p className="muted">
-          These edges live in Neo4j as <code>(CognitiveState)-[:TRIGGERS]-&gt;(InterventionRule)</code>.
-          PAL consults them after every attempt to select the next action.
+          3-state Process KG with per-learner thresholds learned by the Threshold RL.
+          Boundaries (τ_struggling, τ_mastered) are personalized per concept.
         </p>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
               <th style={{ padding: 6 }}>State</th>
               <th style={{ padding: 6 }}>Rule</th>
-              <th style={{ padding: 6 }}>Fires when mastery ≤</th>
+              <th style={{ padding: 6 }}>Condition</th>
               <th style={{ padding: 6 }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {[
-              ['Frustrated', 'OfferSimplerAnalogy', '0.40', 'simplify_with_hobby_analogy'],
-              ['Struggling', 'AddRemedialContent', '0.55', 'insert_prerequisite_video'],
-              ['OnTrack',    'ContinueBaseline',   '0.70', 'continue_normal'],
-              ['Confident',  'AdvanceDifficulty',  '0.85', 'raise_question_difficulty'],
-              ['Mastered',   'SkipRedundant',      '0.95', 'skip_next_similar_chunk'],
+              ['Struggling', 'OfferSimplerAnalogy + AddRemedialContent', 'mastery < τ_struggling', 'simplify_with_hobby_analogy, insert_prerequisite_video'],
+              ['OnTrack',    'OnTrackContinue',      'τ_struggling ≤ mastery < τ_mastered', 'continue_normal'],
+              ['Mastered',   'MasteredChallenge',    'mastery ≥ τ_mastered', 'offer_challenge_content'],
             ].map(row => (
-              <tr key={row[1]} style={{ borderTop: '1px solid var(--border)' }}>
+              <tr key={row[0]} style={{ borderTop: '1px solid var(--border)' }}>
                 {row.map((c, i) => <td key={i} style={{ padding: 6, fontFamily: i > 0 ? 'monospace' : undefined }}>{c}</td>)}
               </tr>
             ))}
