@@ -238,8 +238,9 @@ function renderAttempts(d) {
       <td class="mono">${num(a.tau_mastered,2)}</td>
       <td>${state(a.cognitive_state)}</td>
       <td>${a.state_changed ? '<span class="yes">↻</span>' : '·'}</td>
-      <td class="mono">${esc(a.rule || '—')}</td>
-      <td class="mono">${esc(a.action || '—')}</td>
+      <td class="mono">${esc((a.rules && a.rules.length ? a.rules : [a.rule]).filter(Boolean).join(' + ') || '—')}</td>
+      <td class="mono">${esc((a.actions && a.actions.length ? a.actions : [a.action]).filter(Boolean).join(' + ') || '—')}${
+        a.recommendation_count ? ` <span class="yes">+${a.recommendation_count}</span>` : ''}</td>
       <td class="mono">${num(a.next_difficulty)}</td>
       <td class="mono">${esc((a.question_id||'').slice(0,8))}…</td>
     </tr>`).join('')}</tbody></table></div>`;
@@ -256,6 +257,10 @@ async function showPathway(qid) {
   try {
     const d = await api(`/api/users/${USER}/pathway/${encodeURIComponent(qid)}`);
     const m = d.mastery, th = d.thresholds, cs = d.cognitive_state || {}, iv = d.intervention || {};
+    // Records written before the additive-rules change carry only the single
+    // priority-0 pair; fall back to it so old pathways still render.
+    const ivRules = (iv.rules && iv.rules.length ? iv.rules : [iv.rule]).filter(Boolean);
+    const ivActions = (iv.actions || iv.all_actions || [iv.action]).filter(Boolean);
     p.innerHTML = `
       <button class="back" id="back">← back to attempts</button>
       <h2 style="font-size:16px">Decision pathway</h2>
@@ -276,11 +281,12 @@ async function showPathway(qid) {
           <div class="det">previous: ${esc(cs.previous ?? '—')}<br>
             changed: ${cs.changed ? 'yes — gate open' : 'no — gate closed'}</div></div>
         <div class="step"><div class="lbl">4 · Process-KG rule</div>
-          <div class="big">${esc(iv.rule || '—')}</div>
-          <div class="det">${(iv.all_actions||[]).length>1
-            ? 'candidates: ' + esc(iv.all_actions.join(', ')) : 'single rule for this state'}</div></div>
+          <div class="big">${esc((ivRules.length ? ivRules : ['—']).join(' + '))}</div>
+          <div class="det">${ivRules.length>1
+            ? 'all ' + ivRules.length + ' rules for this state fire (additive)'
+            : 'single rule for this state'}</div></div>
         <div class="step"><div class="lbl">5 · Action</div>
-          <div class="big">${esc(iv.action || '—')}</div>
+          <div class="big">${esc((ivActions.length ? ivActions : ['—']).join(' + '))}</div>
           <div class="det">${d.recommender_invoked
             ? `recommender ran → ${d.recommendations.length} item(s)`
             : 'recommender not invoked'}${d.recommender_failed?'<br><span class="no">recommender failed</span>':''}</div></div>
@@ -292,9 +298,11 @@ async function showPathway(qid) {
           ${m.after < th.tau_struggling ? `&lt; τ-struggling ${num(th.tau_struggling,2)} → Struggling`
             : m.after >= th.tau_mastered ? `≥ τ-mastered ${num(th.tau_mastered,2)} → Mastered`
             : `∈ [${num(th.tau_struggling,2)}, ${num(th.tau_mastered,2)}) → OnTrack`}</dd>
-        <dt>Recommendation gate</dt><dd>${cs.changed
-          ? 'state changed → content actions allowed to fire'
-          : 'state unchanged → suppressed (no repeat recommendations)'}</dd>
+        <dt>Content actions</dt><dd>${(d.content_actions||[]).length
+          ? esc(d.content_actions.join(', ')) + ' → fired (content fires on every wrong answer the state triggers it, not only on state entry)'
+          : d.correct && (ivActions||[]).some(a => a === 'insert_prerequisite_video')
+            ? 'withheld — the state triggers remedial content, but the answer was correct (mastery is recovering)'
+            : 'none — no rule for this state needs external content'}</dd>
         <dt>Next difficulty</dt><dd>${num(d.next_difficulty)} (Hybrid RL preview)</dd>
         <dt>Reflection</dt><dd>${esc(d.reflection || '—')}</dd>
       </div>

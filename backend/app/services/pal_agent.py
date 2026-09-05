@@ -22,9 +22,13 @@ Learning Adaptation" and the Process KG docs for each subsystem's own detail.
 
 The Process KG uses 3 cognitive states (Struggling, OnTrack, Mastered)
 with per-learner thresholds (tau_struggling, tau_mastered) learned by a
-separate Threshold RL.  Recommendations trigger on STATE ENTRY into
-Struggling only.  Mastered triggers offer_challenge_content (harder
-questions) and retires any active remedial recommendations.
+separate Threshold RL.  A state's rules are ADDITIVE — Struggling fires both
+OfferSimplerAnalogy and AddRemedialContent — and the content-requiring ones
+fire on EVERY interaction in that state, not just on entry: mastery below
+tau_struggling means the learner needs the remedial content now, however many
+answers ago they first dropped below it.  Mastered triggers
+offer_challenge_content (harder questions) and retires any active remedial
+recommendations.
 
 The normal answer explanation and the wrong-answer analogy are NOT part of
 this orchestrator — they are "immediate answer feedback," generated directly
@@ -42,9 +46,11 @@ _BASELINE_SKILL = {"beginner": 0.35, "intermediate": 0.5, "advanced": 0.65}
 # Which Process-KG intervention actions require the Recommendation Engine to
 # supply external content. This mapping is the ONLY place "does this
 # intervention need content" is decided — plain orchestration data, not a new
-# rule engine. Actions not listed here never invoke the recommender. Even for
-# actions marked True here, the recommender only actually runs on a fresh
-# ENTRY into that state (see _NEEDS_CONTENT usage in process_attempt below).
+# rule engine. Actions not listed here never invoke the recommender. Actions
+# marked True fire on EVERY interaction in which the state triggers them, not
+# only on a fresh entry into that state: while mastery stays below
+# tau_struggling the learner still needs the remedial content. Re-recommending
+# is idempotent (recommender.record_active_recommendations upserts).
 _NEEDS_CONTENT = {
     "simplify_with_hobby_analogy": False,
     "insert_prerequisite_video": True,
@@ -161,23 +167,56 @@ class AdaptiveLearningOrchestrator:
         # ---- STEP 6: Difficulty preview ----
         preview = await self._rl.select_difficulty(user_id, concept_id)
 
-        # ---- STEP 7: Recommendations (on Struggling state entry only) ----
+        # ---- STEP 7: Recommendations ----
+        # The rules a cognitive state triggers are ADDITIVE, so every one of
+        # them runs. Struggling triggers both OfferSimplerAnalogy (served
+        # outside the orchestrator, as immediate wrong-answer feedback in
+        # routes/quiz.py) and AddRemedialContent, which needs the recommender.
+        # Content actions fire on every interaction the state triggers them —
+        # not only on state ENTRY — so a learner who stays below
+        # tau_struggling keeps getting remedial content on each wrong answer.
+        #
+        # They do NOT fire on a correct answer, even one that leaves mastery
+        # below tau_struggling. Such an answer means the learner is climbing
+        # back out; piling on more remedial content would punish the recovery.
+        # Correctness (not the mastery delta) is the test, because mastery is
+        # clamped to [0,1]: a wrong answer at mastery 0 lowers nothing, yet
+        # that learner needs the content most.
         action = intervention.get("action", "continue_normal")
+        actions = intervention.get("actions") or [action]
         recommendations: list[dict] = []
-        recommender_invoked = False
+        content_actions = (
+            [a for a in actions if _NEEDS_CONTENT.get(a, False)] if not correct else []
+        )
+        recommender_invoked = bool(content_actions)
         recommender_failed = False
-        if state_changed and _NEEDS_CONTENT.get(action, False):
-            recommender_invoked = True
+        seen_lecture_ids: set[str] = set()
+        for content_action in content_actions:
             try:
-                recommendations = await recommender.recommend_for_intervention(
-                    user_id, action, concept_id, new_mastery,
+                produced = await recommender.recommend_for_intervention(
+                    user_id, content_action, concept_id, new_mastery,
                 )
+            except Exception as exc:
+                recommender_failed = True
+                print(f"[Orchestrator] recommend_for_intervention failed "
+                      f"user={user_id} concept={concept_id} action={content_action}: {exc}")
+                continue
+            # Two content actions in one state could surface the same lecture;
+            # keep the first occurrence so the learner never sees a duplicate.
+            for lec in produced:
+                lid = lec.get("lecture_id")
+                if lid and lid in seen_lecture_ids:
+                    continue
+                if lid:
+                    seen_lecture_ids.add(lid)
+                recommendations.append(lec)
+        if recommendations:
+            try:
                 await recommender.record_active_recommendations(user_id, concept_id, recommendations)
             except Exception as exc:
                 recommender_failed = True
-                recommendations = []
-                print(f"[Orchestrator] recommend_for_intervention failed "
-                      f"user={user_id} concept={concept_id} action={action}: {exc}")
+                print(f"[Orchestrator] record_active_recommendations failed "
+                      f"user={user_id} concept={concept_id}: {exc}")
 
         # ---- Mastered -> retire any pending remediation for this concept ----
         retired_lecture_ids: list[str] = []
@@ -215,6 +254,7 @@ class AdaptiveLearningOrchestrator:
             "decision_ref": threshold_decision_ref,
             "recommendations": recommendations,
             "recommender_invoked": recommender_invoked,
+            "content_actions": content_actions,
             "recommender_failed": recommender_failed,
             "retired_lecture_ids": retired_lecture_ids,
             "next_difficulty": preview.legacy_difficulty,

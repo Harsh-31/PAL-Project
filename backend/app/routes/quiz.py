@@ -9,8 +9,8 @@ Two distinct things happen on every /submit call, deliberately kept separate:
      simplified explanation. Independent of Process KG state, RL, and video
      playback.
   2. AdaptiveLearningOrchestrator (pal_agent.py) — mastery update, Process KG
-     intervention, RL difficulty preview, and — only when a fresh state entry
-     requires it — the Recommendation Engine.
+     intervention, RL difficulty preview, and — whenever the cognitive state
+     triggers a rule that needs external content — the Recommendation Engine.
 """
 from __future__ import annotations
 from datetime import datetime, timezone

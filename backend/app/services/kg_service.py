@@ -392,10 +392,16 @@ async def get_intervention(user_id: str, concept_id: str, mastery: float) -> dic
         )
         rules = [dict(row) async for row in r2]
 
+    # Every rule the state triggers fires, in priority order — the rules for a
+    # state are additive, not alternatives. `rule`/`action` remain the primary
+    # (priority-0) pair for callers that only handle one; `rules`/`actions`
+    # carry the complete set the orchestrator must act on.
     return {
         "state": state,
         "rule": rules[0]["rule"],
         "action": rules[0]["action"],
+        "rules": [row["rule"] for row in rules],
+        "actions": [row["action"] for row in rules],
         "all_actions": [row["action"] for row in rules],
         "tau_struggling": tau_s,
         "tau_mastered": tau_m,
@@ -736,6 +742,24 @@ async def get_composed_playlist(
     for l in lectures:
         l.pop("_sort_key", None)
     return lectures
+
+
+async def get_concept_difficulties(concept_ids: list[str]) -> dict[str, int]:
+    """{concept_id: difficulty} for the given concepts.
+
+    Learner-independent, unlike get_mastery_for_concepts — used by baseline
+    filtering, which cares only about a concept's intrinsic difficulty.
+    """
+    if not concept_ids:
+        return {}
+    driver = get_driver()
+    async with driver.session() as s:
+        r = await s.run(
+            """MATCH (k:Concept) WHERE k.id IN $cids
+               RETURN k.id AS id, k.difficulty AS difficulty""",
+            cids=concept_ids,
+        )
+        return {rec["id"]: rec["difficulty"] async for rec in r}
 
 
 async def get_mastery_for_concepts(user_id: str, concept_ids: list[str]) -> list[dict]:

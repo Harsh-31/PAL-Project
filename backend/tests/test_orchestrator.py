@@ -16,6 +16,7 @@ from app.services.adaptive.actions import Difficulty
 from app.services.adaptive.reward import RewardComponents
 from app.services.adaptive.state import LearnerState
 from app.services.adaptive import persistence as persistence_module
+from app.services.threshold_rl.controller import ThresholdController
 from tests.test_adaptive_persistence_integration import _FakeDB
 
 
@@ -83,6 +84,19 @@ def _patch_kg(monkeypatch, *, mastery=0.5, new_mastery=0.5, attempts=1, interven
     # override these explicitly.
     monkeypatch.setattr(recommender, "record_active_recommendations", _returns(None))
     monkeypatch.setattr(recommender, "retire_recommendations_for_concept", _returns([]))
+    _patch_kg_side_effects(monkeypatch)
+
+
+def _patch_kg_side_effects(monkeypatch):
+    """Stub the KG writes/reads process_attempt performs around the decision
+    itself — the RL state write-through to the MASTERS edge and the two reads
+    the Threshold RL needs. They all go straight to Neo4j, so without these
+    every orchestration test dies on "Neo4j driver not initialised" before
+    reaching its own assertions."""
+    monkeypatch.setattr(kg_service, "sync_rl_state_to_edge", _returns(None))
+    monkeypatch.setattr(kg_service, "get_last_cognitive_state", _returns("OnTrack"))
+    monkeypatch.setattr(kg_service, "get_thresholds", _returns({"tau_timestep": 0}))
+    monkeypatch.setattr(ThresholdController, "record_interaction", _returns(None))
 
 
 def _run(coro):

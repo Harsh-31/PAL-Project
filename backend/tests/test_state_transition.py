@@ -1,10 +1,11 @@
-"""Tests for state-transition-gated recommendation triggering — the
-Recommendation Engine must only run on ENTRY into a content-requiring
-Process-KG cognitive state (e.g. OnTrack -> Struggling), never merely because
-the learner remains in that state across consecutive answers
-(Struggling -> Struggling), and never merely because Struggling's specific
-firing rule changes (OfferSimplerAnalogy <-> AddRemedialContent) while the
-state itself doesn't change.
+"""Tests for cognitive-state transitions and recommendation triggering.
+
+The Recommendation Engine runs whenever the current cognitive state triggers
+a rule that needs external content — on every such interaction, not only on
+ENTRY into that state: a learner whose mastery stays below tau_struggling
+still needs the remedial content on the next wrong answer. State transitions
+are still tracked (and still drive the Mastered -> retire lifecycle), they
+just no longer gate content.
 
 Two layers are tested:
   1. kg_service.swap_intervention_state() itself — the real function, against
@@ -25,7 +26,9 @@ from app.services.recommender import (
     record_active_recommendations as _real_record_active_recommendations,
     retire_recommendations_for_concept as _real_retire_recommendations_for_concept,
 )
-from tests.test_orchestrator import PENDING, _fake_decision, _fake_outcome, _returns
+from tests.test_orchestrator import (
+    PENDING, _fake_decision, _fake_outcome, _patch_kg_side_effects, _returns,
+)
 from tests.test_remediation_lifecycle import _FakeDB
 
 
@@ -38,6 +41,7 @@ def _safe_remediation_lifecycle_defaults(monkeypatch):
     Mongo access; the dedicated lifecycle tests override these explicitly."""
     monkeypatch.setattr(recommender, "record_active_recommendations", _returns(None))
     monkeypatch.setattr(recommender, "retire_recommendations_for_concept", _returns([]))
+    _patch_kg_side_effects(monkeypatch)
 
 
 def _run(coro):
@@ -251,7 +255,10 @@ def test_mastered_to_struggling_now_invokes_remedial_recommender(monkeypatch):
 
     orch = AdaptiveLearningOrchestrator()
     result = _run(orch.process_attempt(
-        user_id="u1", concept_id="c1", correct=True, current_difficulty=2,
+        # A wrong answer: mastery only ever falls on an incorrect answer, so
+        # this is the only way a learner actually regresses out of Mastered —
+        # and content is withheld on correct answers regardless.
+        user_id="u1", concept_id="c1", correct=False, current_difficulty=2,
         question_id="qf3", response_time_sec=5.0, pending=PENDING,
     ))
 
@@ -312,7 +319,7 @@ def test_rl_difficulty_independent_when_struggling_with_analogy(monkeypatch):
     assert result["recommender_invoked"] is False
 
 
-def test_2_struggling_to_struggling_does_not_retrigger(monkeypatch):
+def test_2_struggling_to_struggling_retriggers_remedial_content(monkeypatch):
     _patch_rl(monkeypatch, Difficulty.MEDIUM, 3)
     monkeypatch.setattr(kg_service, "record_mastery", _returns(0.48))
     monkeypatch.setattr(kg_service, "get_attempts", _returns(3))
@@ -332,10 +339,12 @@ def test_2_struggling_to_struggling_does_not_retrigger(monkeypatch):
         question_id="q2", response_time_sec=5.0, pending=PENDING,
     ))
 
+    # Content actions are NOT gated on state entry: while mastery stays below
+    # tau_struggling the learner still needs the remedial content, so it fires
+    # again even though the state itself did not change.
     assert result["cognitive_state"]["changed"] is False
-    assert result["recommender_invoked"] is False
-    assert result["recommendations"] == []
-    assert invoked == []
+    assert result["recommender_invoked"] is True
+    assert invoked == [1]
 
 
 def test_3_struggling_to_ontrack_resets_without_recommendation(monkeypatch):
@@ -516,15 +525,15 @@ def test_4_and_8_full_transition_sequence_across_separate_calls(monkeypatch):
     assert r1["cognitive_state"] == {"current": "Struggling", "previous": "OnTrack", "changed": True}
     assert r1["recommender_invoked"] is True
 
-    # Step 2: Struggling -> Struggling (still struggling -> no retrigger)
+    # Step 2: Struggling -> Struggling (still struggling -> content fires again)
     r2 = _attempt(0.51, STRUGGLING)
     assert r2["cognitive_state"]["changed"] is False
-    assert r2["recommender_invoked"] is False
+    assert r2["recommender_invoked"] is True
 
-    # Step 3: Struggling -> Struggling again (still no retrigger)
+    # Step 3: Struggling -> Struggling again (still below the threshold)
     r3 = _attempt(0.48, STRUGGLING)
     assert r3["cognitive_state"]["changed"] is False
-    assert r3["recommender_invoked"] is False
+    assert r3["recommender_invoked"] is True
 
     # Step 4: Struggling -> OnTrack (exit remediation -> reset, no recommendation)
     r4 = _attempt(0.58, ONTRACK)
@@ -536,8 +545,9 @@ def test_4_and_8_full_transition_sequence_across_separate_calls(monkeypatch):
     assert r5["cognitive_state"] == {"current": "Struggling", "previous": "OnTrack", "changed": True}
     assert r5["recommender_invoked"] is True
 
-    # Exactly two recommendation calls across the whole 5-step sequence.
-    assert invocations == ["insert_prerequisite_video", "insert_prerequisite_video"]
+    # One call per Struggling step (4 of the 5); the OnTrack step needs no
+    # content, so it makes none.
+    assert invocations == ["insert_prerequisite_video"] * 4
 
 
 def test_struggling_analogy_remedial_alternation_sequence_across_separate_calls(monkeypatch):
@@ -687,3 +697,163 @@ def test_E_mastered_retires_pending_remediation_preserves_unrelated(monkeypatch)
     assert c1_row["status"] == "retired"
     other_row = next(r for r in fake_db.remedial_recommendations.docs if r["concept_id"] == "other-concept")
     assert other_row["status"] == "active"  # unrelated content preserved
+
+
+# ---------------------------------------------------------------------------
+# Additive rules: Struggling fires BOTH of its rules, every time
+# ---------------------------------------------------------------------------
+
+# What the real Process KG returns for Struggling now that get_intervention
+# reports every rule the state triggers, in priority order — the analogy at
+# priority 0 and the remedial content at priority 1.
+STRUGGLING_BOTH = {
+    "state": "Struggling",
+    "rule": "OfferSimplerAnalogy", "action": "simplify_with_hobby_analogy",
+    "rules": ["OfferSimplerAnalogy", "AddRemedialContent"],
+    "actions": ["simplify_with_hobby_analogy", "insert_prerequisite_video"],
+    "tau_struggling": 0.4, "tau_mastered": 0.85,
+}
+
+
+def _struggling_both_attempt(monkeypatch, previous_state, recommend):
+    _patch_rl(monkeypatch, Difficulty.MEDIUM, 3)
+    monkeypatch.setattr(kg_service, "record_mastery", _returns(0.30))
+    monkeypatch.setattr(kg_service, "get_attempts", _returns(3))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(STRUGGLING_BOTH))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns(previous_state))
+    monkeypatch.setattr(recommender, "recommend_for_intervention", recommend)
+    orch = AdaptiveLearningOrchestrator()
+    return _run(orch.process_attempt(
+        user_id="u1", concept_id="c1", correct=False, current_difficulty=3,
+        question_id="qb1", response_time_sec=5.0, pending=PENDING,
+    ))
+
+
+def test_struggling_fires_analogy_and_remedial_content_together(monkeypatch):
+    """The priority-0 analogy no longer shadows the priority-1 remedial rule:
+    both are reported, and the one that needs content actually gets it."""
+    calls = []
+
+    async def recommend(user_id, action, concept_id, mastery):
+        calls.append(action)
+        return [{"lecture_id": "L1"}]
+
+    result = _struggling_both_attempt(monkeypatch, "OnTrack", recommend)
+
+    # Only the content-requiring rule reaches the recommender; the analogy is
+    # served outside the orchestrator (immediate feedback in routes/quiz.py).
+    assert calls == ["insert_prerequisite_video"]
+    assert result["content_actions"] == ["insert_prerequisite_video"]
+    assert result["recommender_invoked"] is True
+    assert [l["lecture_id"] for l in result["recommendations"]] == ["L1"]
+    # The primary action stays the priority-0 rule for single-action callers,
+    # while the full set is carried alongside it.
+    assert result["intervention"]["action"] == "simplify_with_hobby_analogy"
+    assert result["intervention"]["actions"] == [
+        "simplify_with_hobby_analogy", "insert_prerequisite_video"]
+
+
+def test_struggling_but_recovering_adds_no_remedial_content(monkeypatch):
+    """A correct answer that leaves mastery below tau_struggling: the learner
+    is climbing back out, so no further remedial content is piled on — even
+    though the state still triggers the rule."""
+    calls = []
+
+    async def recommend(user_id, action, concept_id, mastery):
+        calls.append(action)
+        return [{"lecture_id": "L1"}]
+
+    _patch_rl(monkeypatch, Difficulty.MEDIUM, 3)
+    monkeypatch.setattr(kg_service, "record_mastery", _returns(0.30))
+    monkeypatch.setattr(kg_service, "get_attempts", _returns(3))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(STRUGGLING_BOTH))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("Struggling"))
+    monkeypatch.setattr(recommender, "recommend_for_intervention", recommend)
+
+    orch = AdaptiveLearningOrchestrator()
+    result = _run(orch.process_attempt(
+        user_id="u1", concept_id="c1", correct=True, current_difficulty=3,
+        question_id="qb4", response_time_sec=5.0, pending=PENDING,
+    ))
+
+    assert calls == []
+    assert result["content_actions"] == []
+    assert result["recommender_invoked"] is False
+    assert result["recommendations"] == []
+    # The rule itself is still reported — only the content is withheld.
+    assert result["intervention"]["actions"] == [
+        "simplify_with_hobby_analogy", "insert_prerequisite_video"]
+
+
+def test_struggling_fires_remedial_content_without_a_state_change(monkeypatch):
+    """Same state as last interaction, mastery still below tau_struggling —
+    the remedial content fires anyway."""
+    calls = []
+
+    async def recommend(user_id, action, concept_id, mastery):
+        calls.append(action)
+        return [{"lecture_id": "L1"}]
+
+    result = _struggling_both_attempt(monkeypatch, "Struggling", recommend)
+
+    assert result["cognitive_state"]["changed"] is False
+    assert calls == ["insert_prerequisite_video"]
+    assert result["recommender_invoked"] is True
+
+
+def test_duplicate_lectures_across_content_actions_are_surfaced_once(monkeypatch):
+    """If two content actions in one state return the same lecture, the
+    learner sees it once."""
+    async def recommend(user_id, action, concept_id, mastery):
+        return [{"lecture_id": "L1"}, {"lecture_id": "L2"}]
+
+    both_need_content = dict(
+        STRUGGLING_BOTH,
+        actions=["insert_prerequisite_video", "insert_prerequisite_video"],
+    )
+    _patch_rl(monkeypatch, Difficulty.MEDIUM, 3)
+    monkeypatch.setattr(kg_service, "record_mastery", _returns(0.30))
+    monkeypatch.setattr(kg_service, "get_attempts", _returns(3))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(both_need_content))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("OnTrack"))
+    monkeypatch.setattr(recommender, "recommend_for_intervention", recommend)
+
+    orch = AdaptiveLearningOrchestrator()
+    result = _run(orch.process_attempt(
+        user_id="u1", concept_id="c1", correct=False, current_difficulty=3,
+        question_id="qb2", response_time_sec=5.0, pending=PENDING,
+    ))
+
+    assert [l["lecture_id"] for l in result["recommendations"]] == ["L1", "L2"]
+
+
+def test_one_failing_content_action_does_not_lose_the_other(monkeypatch):
+    """A recommender error is flagged but never discards content another
+    action already produced, and never breaks the attempt."""
+    async def recommend(user_id, action, concept_id, mastery):
+        if action == "insert_prerequisite_video":
+            raise RuntimeError("embedding backend down")
+        return [{"lecture_id": "L9"}]
+
+    two_actions = dict(
+        STRUGGLING_BOTH,
+        actions=["offer_challenge_content", "insert_prerequisite_video"],
+    )
+    _patch_rl(monkeypatch, Difficulty.MEDIUM, 3)
+    monkeypatch.setattr(kg_service, "record_mastery", _returns(0.30))
+    monkeypatch.setattr(kg_service, "get_attempts", _returns(3))
+    monkeypatch.setattr(kg_service, "get_intervention", _returns(two_actions))
+    monkeypatch.setattr(kg_service, "swap_intervention_state", _returns("OnTrack"))
+    monkeypatch.setattr(recommender, "recommend_for_intervention", recommend)
+
+    orch = AdaptiveLearningOrchestrator()
+    result = _run(orch.process_attempt(
+        user_id="u1", concept_id="c1", correct=False, current_difficulty=3,
+        question_id="qb3", response_time_sec=5.0, pending=PENDING,
+    ))
+
+    # offer_challenge_content isn't a content action, so only the failing one
+    # ran — the attempt still completes with a usable trace.
+    assert result["recommender_failed"] is True
+    assert result["recommendations"] == []
+    assert result["next_difficulty"] == 3

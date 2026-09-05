@@ -214,3 +214,149 @@ def test_F_selected_subset_preserves_existing_composed_playlist_order(monkeypatc
     result = _run(recommender.build_onboarding_starter_playlist("u1", "goal"))
 
     assert [lec["lecture_id"] for lec in result["lectures"]] == ["lecA", "lecB"]
+
+
+# ---------------------------------------------------------------------------
+# baseline difficulty filtering on the STARTER playlist
+#
+# Previously the starter playlist ignored baseline entirely, so a beginner
+# and an advanced learner with the same goal received identical lectures.
+# These tests pin the rule it now shares with /api/playlist: the filter acts
+# on CONCEPTS (a lecture survives if any one of its concepts survives), is
+# threshold-based rather than proportional, always exempts the transitive
+# prerequisite closure, and is waived outright rather than returning nothing.
+# ---------------------------------------------------------------------------
+
+def _concept_d(cid, sim, difficulty):
+    c = _concept(cid, f"Concept {cid}", sim)
+    c["difficulty"] = difficulty
+    return c
+
+
+def _patch_difficulty_and_prereqs(monkeypatch, difficulty_map, prereq_closure=frozenset()):
+    monkeypatch.setattr(recommender.kg_service, "get_concept_difficulties",
+                        _returns(dict(difficulty_map)))
+    monkeypatch.setattr(recommender.kg_service, "get_prerequisite_closure",
+                        _returns(set(prereq_closure)))
+
+
+def test_G_beginner_keeps_every_matched_concept_and_skips_the_kg_lookups(monkeypatch):
+    """Beginner is the identity case: nothing is dropped, and the two extra
+    Neo4j round-trips must not even be issued."""
+    concepts = [_concept_d("c1", 0.90, 1), _concept_d("c2", 0.80, 3)]
+    _patch_scoring(monkeypatch, concepts)
+
+    def _explode(*a, **k):
+        raise AssertionError("beginner must not query difficulty/prerequisites")
+    monkeypatch.setattr(recommender.kg_service, "get_concept_difficulties", _explode)
+    monkeypatch.setattr(recommender.kg_service, "get_prerequisite_closure", _explode)
+    _patch_composed_playlist(monkeypatch, {"c1": [_lecture("lecA", ["c1"])],
+                                           "c2": [_lecture("lecB", ["c2"])]})
+
+    result = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="beginner"))
+
+    assert result["concept_ids"] == ["c1", "c2"]
+    assert result["baseline_dropped_concept_ids"] == []
+    assert result["baseline_filter_waived"] is False
+
+
+def test_H_intermediate_drops_only_difficulty_1_concepts(monkeypatch):
+    """difficulty >= 2 survives; the easy concept and its lecture disappear."""
+    concepts = [_concept_d("easy", 0.90, 1), _concept_d("mid", 0.85, 2),
+                _concept_d("hard", 0.80, 3)]
+    _patch_scoring(monkeypatch, concepts)
+    _patch_difficulty_and_prereqs(monkeypatch, {"easy": 1, "mid": 2, "hard": 3})
+    _patch_composed_playlist(monkeypatch, {
+        "easy": [_lecture("lecEasy", ["easy"])],
+        "mid": [_lecture("lecMid", ["mid"])],
+        "hard": [_lecture("lecHard", ["hard"])],
+    })
+
+    result = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="intermediate"))
+
+    assert result["concept_ids"] == ["mid", "hard"]
+    assert result["baseline_dropped_concept_ids"] == ["easy"]
+    assert [l["lecture_id"] for l in result["lectures"]] == ["lecMid", "lecHard"]
+
+
+def test_I_advanced_is_stricter_than_intermediate_on_the_same_goal(monkeypatch):
+    """Same matched set, different baseline -> different starter playlist.
+    This is the behaviour that did not exist before."""
+    concepts = [_concept_d("easy", 0.90, 1), _concept_d("mid", 0.85, 2),
+                _concept_d("hard", 0.80, 3)]
+    lectures = {"easy": [_lecture("lecEasy", ["easy"])],
+                "mid": [_lecture("lecMid", ["mid"])],
+                "hard": [_lecture("lecHard", ["hard"])]}
+
+    _patch_scoring(monkeypatch, concepts)
+    _patch_difficulty_and_prereqs(monkeypatch, {"easy": 1, "mid": 2, "hard": 3})
+    _patch_composed_playlist(monkeypatch, lectures)
+    advanced = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="advanced"))
+
+    assert advanced["concept_ids"] == ["hard"]
+    assert sorted(advanced["baseline_dropped_concept_ids"]) == ["easy", "mid"]
+
+
+def test_J_prerequisite_closure_is_exempt_regardless_of_difficulty(monkeypatch):
+    """An easy concept that something in the target set REQUIRES is kept even
+    for an advanced learner — the escape hatch in apply_baseline_filter."""
+    concepts = [_concept_d("easy_prereq", 0.90, 1), _concept_d("hard", 0.80, 3)]
+    _patch_scoring(monkeypatch, concepts)
+    _patch_difficulty_and_prereqs(
+        monkeypatch, {"easy_prereq": 1, "hard": 3}, prereq_closure={"easy_prereq"},
+    )
+    _patch_composed_playlist(monkeypatch, {
+        "easy_prereq": [_lecture("lecPre", ["easy_prereq"])],
+        "hard": [_lecture("lecHard", ["hard"])],
+    })
+
+    result = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="advanced"))
+
+    assert result["concept_ids"] == ["easy_prereq", "hard"]
+    assert result["baseline_dropped_concept_ids"] == []
+
+
+def test_K_filter_is_threshold_based_not_proportional(monkeypatch):
+    """All-hard matched set -> advanced drops ZERO concepts. A proportional
+    'trim the easiest N%' rule would have removed some; this one must not."""
+    concepts = [_concept_d(f"c{i}", 0.90 - i * 0.01, 3) for i in range(5)]
+    _patch_scoring(monkeypatch, concepts)
+    _patch_difficulty_and_prereqs(monkeypatch, {f"c{i}": 3 for i in range(5)})
+    _patch_composed_playlist(monkeypatch, {f"c{i}": [_lecture(f"lec{i}", [f"c{i}"])] for i in range(5)})
+
+    result = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="advanced"))
+
+    assert len(result["concept_ids"]) == 5
+    assert result["baseline_dropped_concept_ids"] == []
+
+
+def test_L_lecture_survives_if_any_one_of_its_concepts_survives(monkeypatch):
+    """Filtering is concept-level: a lecture teaching both a dropped easy
+    concept and a surviving hard one must stay in the playlist."""
+    concepts = [_concept_d("easy", 0.90, 1), _concept_d("hard", 0.85, 3)]
+    _patch_scoring(monkeypatch, concepts)
+    _patch_difficulty_and_prereqs(monkeypatch, {"easy": 1, "hard": 3})
+    mixed = _lecture("lecMixed", ["easy", "hard"])
+    _patch_composed_playlist(monkeypatch, {}, fixed_order=[mixed])
+
+    result = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="advanced"))
+
+    assert [l["lecture_id"] for l in result["lectures"]] == ["lecMixed"]
+
+
+def test_M_filter_is_waived_rather_than_returning_an_empty_playlist(monkeypatch):
+    """Everything the goal matched is easy and nothing is a prerequisite, so
+    an advanced filter would empty the set — the unfiltered set is used and
+    the waiver is reported."""
+    concepts = [_concept_d("e1", 0.90, 1), _concept_d("e2", 0.85, 1)]
+    _patch_scoring(monkeypatch, concepts)
+    _patch_difficulty_and_prereqs(monkeypatch, {"e1": 1, "e2": 1})
+    _patch_composed_playlist(monkeypatch, {"e1": [_lecture("lec1", ["e1"])],
+                                           "e2": [_lecture("lec2", ["e2"])]})
+
+    result = _run(recommender.build_onboarding_starter_playlist("u1", "goal", baseline="advanced"))
+
+    assert result["baseline_filter_waived"] is True
+    assert result["concept_ids"] == ["e1", "e2"]
+    assert result["baseline_dropped_concept_ids"] == []
+    assert [l["lecture_id"] for l in result["lectures"]] == ["lec1", "lec2"]

@@ -355,9 +355,12 @@ async def recommend_for_intervention(user_id: str, intervention_action: str,
     — the actual ranking/embedding/similarity logic is unchanged either way.
     """
     if intervention_action == "insert_prerequisite_video":
-        # The KG only fires this rule when mastery is already low (<=0.55),
-        # so this threshold just needs to comfortably include that mastery
-        # value, with a safety margin if the KG's own threshold is retuned.
+        # The KG fires this rule whenever mastery is below the learner's
+        # tau_struggling, which the Threshold RL can move anywhere in [0,1].
+        # `mastery + 0.01` therefore does the real work — it guarantees this
+        # concept clears _fetch_struggling_target_concepts' bar whatever the
+        # learned threshold happens to be — and the 0.6 floor only keeps the
+        # long-standing default behaviour for low masteries.
         threshold = max(0.6, mastery + 0.01)
         return await recommend_supplementary(user_id, [concept_id], struggle_threshold=threshold)
     if intervention_action == "offer_challenge_content":
@@ -502,7 +505,6 @@ async def _select_concepts_for_goal(
 
 async def match_goal_to_concepts(
     goal_text: str,
-    baseline: str = "beginner",
     track_concept_ids: list[str] | None = None,
     top_k: int = DEFAULT_GOAL_TOP_K,
     similarity_floor: float = DEFAULT_GOAL_SIMILARITY_FLOOR,
@@ -516,6 +518,13 @@ async def match_goal_to_concepts(
     instead (see _select_concepts_for_goal) — this is what gets persisted as
     the learner's target_concept_ids for the ongoing (uncapped) course
     playlist. Falls back to keyword matching when Ollama is unavailable.
+
+    Deliberately takes NO baseline: what gets persisted is the learner's full
+    goal-matched concept set, and apply_baseline_filter runs at READ time in
+    the /api/playlist route. Filtering here instead would bake the filter
+    into storage and permanently discard concepts the learner would need if
+    their baseline ever changed. (The starter playlist below does apply the
+    filter, because it is a presentation-time view, not persisted state.)
     """
     selected, _fallback_activated = await _select_concepts_for_goal(
         goal_text, track_concept_ids, top_k, similarity_floor, track_boost,
@@ -523,6 +532,34 @@ async def match_goal_to_concepts(
     if not selected:
         return await _keyword_fallback_match(goal_text, track_concept_ids, top_k)
     return [cid for cid, _sim in selected]
+
+
+async def _apply_baseline_filter_to_concepts(
+    concept_ids: list[str], baseline: str,
+) -> tuple[list[str], list[str]]:
+    """Fetch what apply_baseline_filter needs, then apply it.
+
+    Wraps the difficulty-map + prerequisite-closure lookups that the
+    /api/playlist route does inline, so the onboarding starter playlist can
+    apply the SAME concept-level difficulty rule without duplicating them.
+
+    Returns (kept_ids, dropped_ids) with `kept_ids` in the same relative
+    order as `concept_ids` — the filter only punches holes in an existing
+    order, it never re-sequences.
+
+    "beginner" short-circuits: apply_baseline_filter is the identity function
+    for that baseline, so the two Neo4j round-trips would be pure waste.
+    """
+    if baseline == "beginner" or not concept_ids:
+        return list(concept_ids), []
+
+    difficulty_map = await kg_service.get_concept_difficulties(concept_ids)
+    prereq_closure = await kg_service.get_prerequisite_closure(concept_ids)
+
+    kept = apply_baseline_filter(concept_ids, difficulty_map, baseline, prereq_closure)
+    kept_set = set(kept)
+    dropped = [cid for cid in concept_ids if cid not in kept_set]
+    return kept, dropped
 
 
 # ---------- onboarding starter playlist (capped, relevance-ranked) ----------
@@ -534,6 +571,7 @@ async def build_onboarding_starter_playlist(
     user_id: str,
     goal_text: str,
     track_concept_ids: list[str] | None = None,
+    baseline: str = "beginner",
     max_lectures: int = MAX_ONBOARDING_LECTURES,
 ) -> dict:
     """Goal -> a small, focused STARTER playlist (<= max_lectures).
@@ -554,6 +592,16 @@ async def build_onboarding_starter_playlist(
     ordering for just the selected subset — relevance decides WHICH lectures
     make the cut, existing ordering logic decides what SEQUENCE to present
     them in.
+
+    `baseline` applies the SAME concept-level difficulty rule the ongoing
+    /api/playlist view uses (apply_baseline_filter: intermediate keeps
+    difficulty >= 2, advanced >= 3, prerequisite closure always exempt), so
+    an advanced learner's starter set is not identical to a beginner's for
+    the same goal. It is applied to CONCEPTS before composition, so a lecture
+    survives as long as any one concept it teaches survives. If the filter
+    would leave nothing at all, the unfiltered set is used instead — the same
+    "a valid goal never yields an empty playlist" guarantee
+    _select_concepts_for_goal makes for the similarity floor.
     """
     selected, fallback_activated = await _select_concepts_for_goal(
         goal_text, track_concept_ids,
@@ -566,8 +614,21 @@ async def build_onboarding_starter_playlist(
         selected = [(cid, 0.0) for cid in keyword_ids]  # no semantic score available here
         used_keyword_fallback = True
 
-    concept_ids = [cid for cid, _sim in selected]
+    matched_concept_ids = [cid for cid, _sim in selected]
     similarity_by_concept = {cid: sim for cid, sim in selected}
+
+    # Baseline difficulty filter — same rule, same prerequisite exemption as
+    # /api/playlist. Order-preserving, so the relevance ranking below and the
+    # ordered_concept_ids hint are both unaffected apart from the removals.
+    concept_ids, baseline_dropped = await _apply_baseline_filter_to_concepts(
+        matched_concept_ids, baseline,
+    )
+    baseline_filter_emptied = bool(matched_concept_ids) and not concept_ids
+    if baseline_filter_emptied:
+        # Never hand back an empty starter playlist purely because the
+        # learner's baseline outran the difficulty of everything their goal
+        # matched — fall back to the unfiltered set and report it.
+        concept_ids, baseline_dropped = matched_concept_ids, []
 
     # Reuse the EXISTING KG composition + prerequisite-aware ordering as-is —
     # relevance order doubles as a reasonable ordered_concept_ids hint too.
@@ -600,6 +661,11 @@ async def build_onboarding_starter_playlist(
         "used_keyword_fallback": used_keyword_fallback,
         "raw_lecture_count": len(lectures),
         "similarity_by_concept": similarity_by_concept,
+        # Baseline provenance — which concepts the difficulty filter removed,
+        # and whether it had to be waived to avoid an empty playlist.
+        "baseline": baseline,
+        "baseline_dropped_concept_ids": baseline_dropped,
+        "baseline_filter_waived": baseline_filter_emptied,
     }
 
 

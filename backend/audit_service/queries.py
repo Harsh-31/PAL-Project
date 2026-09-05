@@ -298,6 +298,15 @@ async def attempts(user: dict, concept_id: str | None, limit: int, skip: int) ->
             "state_changed": cog.get("changed"),
             "rule": intervention.get("rule"),
             "action": intervention.get("action"),
+            # Every rule the state triggered, not just the priority-0 one.
+            # Older records predate the additive-rules change and carry only
+            # the single pair, so fall back to it.
+            "rules": intervention.get("rules") or (
+                [intervention["rule"]] if intervention.get("rule") else []),
+            "actions": intervention.get("actions") or intervention.get("all_actions") or (
+                [intervention["action"]] if intervention.get("action") else []),
+            "content_actions": trace.get("content_actions") or [],
+            "recommendation_count": len(trace.get("recommendations") or []),
             "tau_struggling": intervention.get("tau_struggling"),
             "tau_mastered": intervention.get("tau_mastered"),
             "next_difficulty": trace.get("next_difficulty"),
@@ -457,6 +466,7 @@ async def pathway(user: dict, question_id: str) -> dict:
 
         # Layer 5 — content the action produced
         "recommendations": clean(trace.get("recommendations") or []),
+        "content_actions": clean(trace.get("content_actions") or []),
         "recommender_invoked": trace.get("recommender_invoked"),
         "recommender_failed": trace.get("recommender_failed"),
         "retired_lecture_ids": clean(trace.get("retired_lecture_ids") or []),
@@ -496,6 +506,8 @@ async def timeline(user: dict, concept_id: str | None, limit: int = 300) -> dict
                 "state_changed": cog.get("changed"),
                 "rule": intervention.get("rule"),
                 "action": intervention.get("action"),
+                "rules": intervention.get("rules") or (
+                    [intervention["rule"]] if intervention.get("rule") else []),
             },
         })
 

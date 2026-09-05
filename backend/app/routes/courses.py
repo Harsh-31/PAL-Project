@@ -56,9 +56,10 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
     # target_concept_ids backs the ONGOING, uncapped /api/playlist view — it
     # is intentionally NOT capped to 10, only tightened (top_k=20/floor=0.65
     # with a top-3 fallback, see recommender.match_goal_to_concepts).
+    # No baseline here on purpose: the persisted set stays the learner's full
+    # goal match, and apply_baseline_filter runs at read time in /api/playlist.
     target_concept_ids = await recommender.match_goal_to_concepts(
         goal_text=payload.goal,
-        baseline=payload.baseline,
         track_concept_ids=track_concept_ids or None,
     )
 
@@ -80,6 +81,7 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
     starter = await recommender.build_onboarding_starter_playlist(
         user_id=user["id"], goal_text=payload.goal,
         track_concept_ids=track_concept_ids or None,
+        baseline=payload.baseline,
     )
 
     await kg_service.upsert_learner(
@@ -110,6 +112,8 @@ async def onboarding(payload: OnboardingIn, user=Depends(current_user)):
         "target_concept_ids": target_concept_ids,
         "starter_playlist": starter["lectures"],
         "starter_playlist_fallback_activated": starter["fallback_activated"],
+        "starter_playlist_baseline_dropped": starter["baseline_dropped_concept_ids"],
+        "starter_playlist_baseline_waived": starter["baseline_filter_waived"],
     }
 
 

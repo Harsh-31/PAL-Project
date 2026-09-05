@@ -190,6 +190,16 @@ export default function Learn() {
 
     // Act on the Process KG intervention. This is what makes the loop visible.
     const action = result?.intervention?.action;
+    // A cognitive state can trigger several rules at once (Struggling fires
+    // both the analogy and the remedial-content rule). `action` is only the
+    // priority-0 one; `actions` is the full set, so a lower-priority rule
+    // that actually added content still gets acknowledged to the learner.
+    const actions = result?.intervention?.actions || (action ? [action] : []);
+    const addedCount = result?.recommendations?.length || 0;
+    const addedRemedial = actions.includes('insert_prerequisite_video') && addedCount > 0;
+    const remedialNote = addedCount
+      ? ` Added ${addedCount} helpful lecture${addedCount > 1 ? 's' : ''} to your sidebar.`
+      : '';
     const wasCorrect = result?.correct;
     const player = playerRef.current;
     if (!ch || !player) {
@@ -240,7 +250,14 @@ export default function Learn() {
       case 'simplify_with_hobby_analogy':
         player.seekTo(ch.start, true);
         player.pauseVideo();
-        showPalAction("Let's look at this another way.", 'warn');
+        showPalAction(
+          // Only mention added content when something was actually added —
+          // never imply a lecture was added if it wasn't.
+          addedRemedial
+            ? `Let's look at this another way.${remedialNote}`
+            : "Let's look at this another way.",
+          'warn'
+        );
         break;
       case 'insert_prerequisite_video':
         player.seekTo(ch.start, true);
@@ -248,8 +265,8 @@ export default function Learn() {
         showPalAction(
           // Only mention added content when something was actually added —
           // never imply a video was added if it wasn't.
-          result?.recommendations?.length
-            ? `Let's review this concept — added ${result.recommendations.length} helpful lecture${result.recommendations.length > 1 ? 's' : ''} to your sidebar.`
+          addedCount
+            ? `Let's review this concept —${remedialNote.replace(' Added', ' added')}`
             : "Let's review this concept before moving on.",
           'warn'
         );
